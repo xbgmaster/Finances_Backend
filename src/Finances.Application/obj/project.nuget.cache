@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "leoCEeVi3EQ=",
+  "dgSpecHash": "Vdepsoj8+oY=",
   "success": true,
-  "projectFilePath": "C:\\Users\\aleja\\OneDrive\\Desktop\\Finances\\finances-backend\\src\\Finances.Application\\Finances.Application.csproj",
+  "projectFilePath": "C:\\Users\\aleja\\OneDrive\\Desktop\\Finances\\finances-backend\\Finances_Backend\\src\\Finances.Application\\Finances.Application.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\aleja\\.nuget\\packages\\microsoft.entityframeworkcore\\8.0.11\\microsoft.entityframeworkcore.8.0.11.nupkg.sha512",
     "C:\\Users\\aleja\\.nuget\\packages\\microsoft.entityframeworkcore.abstractions\\8.0.11\\microsoft.entityframeworkcore.abstractions.8.0.11.nupkg.sha512",

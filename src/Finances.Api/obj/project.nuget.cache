@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "71iYZs9+h2U=",
+  "dgSpecHash": "V6iaaN8nZXo=",
   "success": true,
-  "projectFilePath": "C:\\Users\\aleja\\OneDrive\\Desktop\\Finances\\finances-backend\\src\\Finances.Api\\Finances.Api.csproj",
+  "projectFilePath": "C:\\Users\\aleja\\OneDrive\\Desktop\\Finances\\finances-backend\\Finances_Backend\\src\\Finances.Api\\Finances.Api.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\aleja\\.nuget\\packages\\humanizer.core\\2.14.1\\humanizer.core.2.14.1.nupkg.sha512",
     "C:\\Users\\aleja\\.nuget\\packages\\microsoft.aspnetcore.authentication.jwtbearer\\8.0.11\\microsoft.aspnetcore.authentication.jwtbearer.8.0.11.nupkg.sha512",

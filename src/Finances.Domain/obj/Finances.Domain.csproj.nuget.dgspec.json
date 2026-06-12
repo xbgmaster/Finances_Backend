@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\aleja\\OneDrive\\Desktop\\Finances\\finances-backend\\src\\Finances.Domain\\Finances.Domain.csproj": {}
+    "C:\\Users\\aleja\\OneDrive\\Desktop\\Finances\\finances-backend\\Finances_Backend\\src\\Finances.Domain\\Finances.Domain.csproj": {}
   },
   "projects": {
-    "C:\\Users\\aleja\\OneDrive\\Desktop\\Finances\\finances-backend\\src\\Finances.Domain\\Finances.Domain.csproj": {
+    "C:\\Users\\aleja\\OneDrive\\Desktop\\Finances\\finances-backend\\Finances_Backend\\src\\Finances.Domain\\Finances.Domain.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\aleja\\OneDrive\\Desktop\\Finances\\finances-backend\\src\\Finances.Domain\\Finances.Domain.csproj",
+        "projectUniqueName": "C:\\Users\\aleja\\OneDrive\\Desktop\\Finances\\finances-backend\\Finances_Backend\\src\\Finances.Domain\\Finances.Domain.csproj",
         "projectName": "Finances.Domain",
-        "projectPath": "C:\\Users\\aleja\\OneDrive\\Desktop\\Finances\\finances-backend\\src\\Finances.Domain\\Finances.Domain.csproj",
+        "projectPath": "C:\\Users\\aleja\\OneDrive\\Desktop\\Finances\\finances-backend\\Finances_Backend\\src\\Finances.Domain\\Finances.Domain.csproj",
         "packagesPath": "C:\\Users\\aleja\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\aleja\\OneDrive\\Desktop\\Finances\\finances-backend\\src\\Finances.Domain\\obj\\",
+        "outputPath": "C:\\Users\\aleja\\OneDrive\\Desktop\\Finances\\finances-backend\\Finances_Backend\\src\\Finances.Domain\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"

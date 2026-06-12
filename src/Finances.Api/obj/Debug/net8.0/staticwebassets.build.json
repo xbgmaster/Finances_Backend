@@ -1,6 +1,6 @@
 {
   "Version": 1,
-  "Hash": "BIfo0agskjDzQ1r8Ai1CYzYoQprOSRHmlbNxDU/mPdo=",
+  "Hash": "dwXx/5iiF1vsPcd2ld+qUuid5gj/rAG9kwFGfSCTOHQ=",
   "Source": "Finances.Api",
   "BasePath": "_content/Finances.Api",
   "Mode": "Default",
@@ -10,17 +10,17 @@
     {
       "Name": "Finances.Api\\wwwroot",
       "Source": "Finances.Api",
-      "ContentRoot": "C:\\Users\\aleja\\OneDrive\\Desktop\\Finances\\finances-backend\\src\\Finances.Api\\wwwroot\\",
+      "ContentRoot": "C:\\Users\\aleja\\OneDrive\\Desktop\\Finances\\finances-backend\\Finances_Backend\\src\\Finances.Api\\wwwroot\\",
       "BasePath": "_content/Finances.Api",
       "Pattern": "**"
     }
   ],
   "Assets": [
     {
-      "Identity": "C:\\Users\\aleja\\OneDrive\\Desktop\\Finances\\finances-backend\\src\\Finances.Api\\wwwroot\\uploads\\.gitkeep",
+      "Identity": "C:\\Users\\aleja\\OneDrive\\Desktop\\Finances\\finances-backend\\Finances_Backend\\src\\Finances.Api\\wwwroot\\uploads\\.gitkeep",
       "SourceId": "Finances.Api",
       "SourceType": "Discovered",
-      "ContentRoot": "C:\\Users\\aleja\\OneDrive\\Desktop\\Finances\\finances-backend\\src\\Finances.Api\\wwwroot\\",
+      "ContentRoot": "C:\\Users\\aleja\\OneDrive\\Desktop\\Finances\\finances-backend\\Finances_Backend\\src\\Finances.Api\\wwwroot\\",
       "BasePath": "_content/Finances.Api",
       "RelativePath": "uploads/.gitkeep",
       "AssetKind": "All",

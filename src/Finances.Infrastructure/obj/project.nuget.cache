@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "4TreR4jtDTM=",
+  "dgSpecHash": "YcZpyd2kPAs=",
   "success": true,
-  "projectFilePath": "C:\\Users\\aleja\\OneDrive\\Desktop\\Finances\\finances-backend\\src\\Finances.Infrastructure\\Finances.Infrastructure.csproj",
+  "projectFilePath": "C:\\Users\\aleja\\OneDrive\\Desktop\\Finances\\finances-backend\\Finances_Backend\\src\\Finances.Infrastructure\\Finances.Infrastructure.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\aleja\\.nuget\\packages\\microsoft.aspnetcore.cryptography.internal\\8.0.11\\microsoft.aspnetcore.cryptography.internal.8.0.11.nupkg.sha512",
     "C:\\Users\\aleja\\.nuget\\packages\\microsoft.aspnetcore.cryptography.keyderivation\\8.0.11\\microsoft.aspnetcore.cryptography.keyderivation.8.0.11.nupkg.sha512",

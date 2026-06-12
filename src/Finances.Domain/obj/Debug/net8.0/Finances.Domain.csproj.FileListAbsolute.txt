@@ -9,3 +9,15 @@ C:\Users\aleja\OneDrive\Desktop\Finances\finances-backend\src\Finances.Domain\ob
 C:\Users\aleja\OneDrive\Desktop\Finances\finances-backend\src\Finances.Domain\obj\Debug\net8.0\refint\Finances.Domain.dll
 C:\Users\aleja\OneDrive\Desktop\Finances\finances-backend\src\Finances.Domain\obj\Debug\net8.0\Finances.Domain.pdb
 C:\Users\aleja\OneDrive\Desktop\Finances\finances-backend\src\Finances.Domain\obj\Debug\net8.0\ref\Finances.Domain.dll
+C:\Users\aleja\OneDrive\Desktop\Finances\finances-backend\Finances_Backend\src\Finances.Domain\bin\Debug\net8.0\Finances.Domain.deps.json
+C:\Users\aleja\OneDrive\Desktop\Finances\finances-backend\Finances_Backend\src\Finances.Domain\bin\Debug\net8.0\Finances.Domain.dll
+C:\Users\aleja\OneDrive\Desktop\Finances\finances-backend\Finances_Backend\src\Finances.Domain\bin\Debug\net8.0\Finances.Domain.pdb
+C:\Users\aleja\OneDrive\Desktop\Finances\finances-backend\Finances_Backend\src\Finances.Domain\obj\Debug\net8.0\Finances.Domain.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\aleja\OneDrive\Desktop\Finances\finances-backend\Finances_Backend\src\Finances.Domain\obj\Debug\net8.0\Finances.Domain.AssemblyInfoInputs.cache
+C:\Users\aleja\OneDrive\Desktop\Finances\finances-backend\Finances_Backend\src\Finances.Domain\obj\Debug\net8.0\Finances.Domain.AssemblyInfo.cs
+C:\Users\aleja\OneDrive\Desktop\Finances\finances-backend\Finances_Backend\src\Finances.Domain\obj\Debug\net8.0\Finances.Domain.csproj.CoreCompileInputs.cache
+C:\Users\aleja\OneDrive\Desktop\Finances\finances-backend\Finances_Backend\src\Finances.Domain\obj\Debug\net8.0\Finances.Domain.sourcelink.json
+C:\Users\aleja\OneDrive\Desktop\Finances\finances-backend\Finances_Backend\src\Finances.Domain\obj\Debug\net8.0\Finances.Domain.dll
+C:\Users\aleja\OneDrive\Desktop\Finances\finances-backend\Finances_Backend\src\Finances.Domain\obj\Debug\net8.0\refint\Finances.Domain.dll
+C:\Users\aleja\OneDrive\Desktop\Finances\finances-backend\Finances_Backend\src\Finances.Domain\obj\Debug\net8.0\Finances.Domain.pdb
+C:\Users\aleja\OneDrive\Desktop\Finances\finances-backend\Finances_Backend\src\Finances.Domain\obj\Debug\net8.0\ref\Finances.Domain.dll

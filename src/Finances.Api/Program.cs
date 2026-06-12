@@ -54,7 +54,8 @@ builder.Services.AddCors(options =>
         policy.WithOrigins(
                 "http://localhost:5173",
                 "http://localhost:5174",
-                "http://127.0.0.1:5173")
+                "http://127.0.0.1:5173",
+                "https://finances-frontend-y0sk.onrender.com")
             .AllowAnyHeader()
             .AllowAnyMethod());
 });
@@ -71,11 +72,9 @@ using (var scope = app.Services.CreateScope())
 
 app.UseExceptionHandler();
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+// Swagger habilitado en todos los entornos (incluido Production/Render).
+app.UseSwagger();
+app.UseSwaggerUI();
 
 app.UseStaticFiles();
 app.UseCors(CorsPolicy);
