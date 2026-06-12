@@ -1,0 +1,15 @@
+C:\Users\aleja\OneDrive\Desktop\Finances\finances-backend\src\Finances.Application\bin\Debug\net8.0\Finances.Application.deps.json
+C:\Users\aleja\OneDrive\Desktop\Finances\finances-backend\src\Finances.Application\bin\Debug\net8.0\Finances.Application.dll
+C:\Users\aleja\OneDrive\Desktop\Finances\finances-backend\src\Finances.Application\bin\Debug\net8.0\Finances.Application.pdb
+C:\Users\aleja\OneDrive\Desktop\Finances\finances-backend\src\Finances.Application\bin\Debug\net8.0\Finances.Domain.dll
+C:\Users\aleja\OneDrive\Desktop\Finances\finances-backend\src\Finances.Application\bin\Debug\net8.0\Finances.Domain.pdb
+C:\Users\aleja\OneDrive\Desktop\Finances\finances-backend\src\Finances.Application\obj\Debug\net8.0\Finances.Application.csproj.AssemblyReference.cache
+C:\Users\aleja\OneDrive\Desktop\Finances\finances-backend\src\Finances.Application\obj\Debug\net8.0\Finances.Application.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\aleja\OneDrive\Desktop\Finances\finances-backend\src\Finances.Application\obj\Debug\net8.0\Finances.Application.AssemblyInfoInputs.cache
+C:\Users\aleja\OneDrive\Desktop\Finances\finances-backend\src\Finances.Application\obj\Debug\net8.0\Finances.Application.AssemblyInfo.cs
+C:\Users\aleja\OneDrive\Desktop\Finances\finances-backend\src\Finances.Application\obj\Debug\net8.0\Finances.Application.csproj.CoreCompileInputs.cache
+C:\Users\aleja\OneDrive\Desktop\Finances\finances-backend\src\Finances.Application\obj\Debug\net8.0\Finances.B99C6285.Up2Date
+C:\Users\aleja\OneDrive\Desktop\Finances\finances-backend\src\Finances.Application\obj\Debug\net8.0\Finances.Application.dll
+C:\Users\aleja\OneDrive\Desktop\Finances\finances-backend\src\Finances.Application\obj\Debug\net8.0\refint\Finances.Application.dll
+C:\Users\aleja\OneDrive\Desktop\Finances\finances-backend\src\Finances.Application\obj\Debug\net8.0\Finances.Application.pdb
+C:\Users\aleja\OneDrive\Desktop\Finances\finances-backend\src\Finances.Application\obj\Debug\net8.0\ref\Finances.Application.dll
