@@ -19,14 +19,14 @@ public class ProfileService : IProfileService
     public async Task<UserProfileDto> GetAsync(CancellationToken ct = default)
     {
         var user = await _users.FindByIdAsync(_current.RequireUserId())
-            ?? throw new NotFoundException("Usuario no encontrado.");
+            ?? throw new NotFoundException("User not found.");
         return await MapAsync(user);
     }
 
     public async Task<UserProfileDto> UpdateAsync(UpdateProfileDto dto, CancellationToken ct = default)
     {
         var user = await _users.FindByIdAsync(_current.RequireUserId())
-            ?? throw new NotFoundException("Usuario no encontrado.");
+            ?? throw new NotFoundException("User not found.");
 
         user.FullName = dto.FullName?.Trim();
         user.Country = dto.Country?.Trim();

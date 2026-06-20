@@ -1,7 +1,12 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
     <ProjectReference Include="..\Finances.Application\Finances.Application.csproj" />
+  </ItemGroup>
+
+  <!-- Necesario para AddDefaultTokenProviders / DataProtection (tokens de reseteo). -->
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 
   <ItemGroup>

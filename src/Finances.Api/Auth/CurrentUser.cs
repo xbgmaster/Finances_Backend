@@ -18,5 +18,5 @@ public class CurrentUser : ICurrentUser
     public bool IsAdmin => Principal?.IsInRole("Admin") ?? false;
 
     public string RequireUserId() =>
-        UserId ?? throw new UnauthorizedAccessException("No hay un usuario autenticado.");
+        UserId ?? throw new UnauthorizedAccessException("There is no authenticated user..");
 }

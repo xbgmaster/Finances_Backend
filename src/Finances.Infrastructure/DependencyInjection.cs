@@ -1,5 +1,6 @@
 using Finances.Application.Common;
 using Finances.Application.Services;
+using Finances.Infrastructure.Email;
 using Finances.Infrastructure.Identity;
 using Finances.Infrastructure.Persistence;
 using Finances.Infrastructure.Storage;
@@ -26,6 +27,9 @@ public static class DependencyInjection
         services.AddDbContext<FinanceDbContext>(options => options.UseNpgsql(connectionString));
         services.AddScoped<IFinanceDbContext>(sp => sp.GetRequiredService<FinanceDbContext>());
 
+        // Requerido por los token providers de Identity (reseteo de contrasena).
+        services.AddDataProtection();
+
         // Almacenamiento de archivos (recibos).
         services.AddSingleton(new FileStorageOptions { RootPath = webRootPath });
         services.AddSingleton<IFileStorage, LocalFileStorage>();
@@ -50,7 +54,22 @@ public static class DependencyInjection
                 options.User.RequireUniqueEmail = true;
             })
             .AddRoles<IdentityRole>()
-            .AddEntityFrameworkStores<FinanceDbContext>();
+            .AddEntityFrameworkStores<FinanceDbContext>()
+            .AddDefaultTokenProviders(); // necesario para tokens de reseteo de contrasena
+
+        // Correo (SMTP). Si Email:Host esta vacio, el sender registra en log (dev).
+        var email = new EmailSettings
+        {
+            Host = configuration["Email:Host"] ?? string.Empty,
+            Port = int.TryParse(configuration["Email:Port"], out var p) ? p : 587,
+            User = configuration["Email:User"] ?? string.Empty,
+            Password = configuration["Email:Password"] ?? string.Empty,
+            From = configuration["Email:From"] ?? "no-reply@finances.local",
+            FromName = configuration["Email:FromName"] ?? "Finances",
+            UseSsl = !bool.TryParse(configuration["Email:UseSsl"], out var ssl) || ssl,
+        };
+        services.AddSingleton(email);
+        services.AddScoped<IEmailSender, SmtpEmailSender>();
 
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IProfileService, ProfileService>();

@@ -21,4 +21,12 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     public async Task<ActionResult<AuthResultDto>> Login(LoginDto dto, CancellationToken ct) =>
         Ok(await _auth.LoginAsync(dto, ct));
+
+    [HttpPost("forgot-password")]
+    public async Task<IActionResult> ForgotPassword(ForgotPasswordDto dto, CancellationToken ct)
+    {
+        await _auth.ForgotPasswordAsync(dto, ct);
+        // Respuesta generica: no revela si el correo existe.
+        return Ok(new { message = "If the email exists, a temporary password has been sent." });
+    }
 }

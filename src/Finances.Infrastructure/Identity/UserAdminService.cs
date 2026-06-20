@@ -42,7 +42,7 @@ public class UserAdminService : IUserAdminService
 
     public async Task<AdminUserDto> GetUserAsync(string id, CancellationToken ct = default)
     {
-        var user = await _users.FindByIdAsync(id) ?? throw new NotFoundException("Usuario no encontrado.");
+        var user = await _users.FindByIdAsync(id) ?? throw new NotFoundException("User not found.");
         var adminIds = await GetAdminIdsAsync(ct);
         var (income, expense, expenseCount) = await AggregatesAsync(ct);
         return Map(user, adminIds, income, expense, expenseCount);

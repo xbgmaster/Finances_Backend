@@ -23,6 +23,12 @@ public class LoginDto
     public string Password { get; set; } = string.Empty;
 }
 
+public class ForgotPasswordDto
+{
+    [Required, EmailAddress, MaxLength(256)]
+    public string Email { get; set; } = string.Empty;
+}
+
 public record UserInfoDto(
     string Id,
     string Email,
