@@ -1,4 +1,4 @@
-using System.Security.Cryptography;
+using System.Net;
 using Finances.Application.Common;
 using Finances.Application.Dtos;
 using Finances.Application.Services;
@@ -18,6 +18,7 @@ public class AuthService : IAuthService
     private readonly IJwtTokenGenerator _jwt;
     private readonly FinanceDbContext _db;
     private readonly IEmailSender _email;
+    private readonly AppUrls _urls;
     private readonly ILogger<AuthService> _logger;
 
     public AuthService(
@@ -25,12 +26,14 @@ public class AuthService : IAuthService
         IJwtTokenGenerator jwt,
         FinanceDbContext db,
         IEmailSender email,
+        AppUrls urls,
         ILogger<AuthService> logger)
     {
         _users = users;
         _jwt = jwt;
         _db = db;
         _email = email;
+        _urls = urls;
         _logger = logger;
     }
 
@@ -54,7 +57,7 @@ public class AuthService : IAuthService
 
         await _users.AddToRoleAsync(user, UserRole);
 
-        // Cada usuario nuevo recibe las categorias por defecto.
+        // Every new user receives the default categories.
         _db.Categories.AddRange(DefaultCategories.For(user.Id));
         await _db.SaveChangesAsync(ct);
 
@@ -73,60 +76,55 @@ public class AuthService : IAuthService
     public async Task ForgotPasswordAsync(ForgotPasswordDto dto, CancellationToken ct = default)
     {
         var user = await _users.FindByEmailAsync(dto.Email);
-        // No revelar si el correo existe: si no existe, terminamos en silencio.
+        // Do not reveal whether the email exists: if it does not, finish silently.
         if (user is null)
         {
-            _logger.LogInformation("Forgot-password solicitado para correo inexistente: {Email}", dto.Email);
+            _logger.LogInformation("Forgot-password requested for unknown email: {Email}", dto.Email);
             return;
         }
 
-        var tempPassword = GenerateTempPassword();
+        // Generate a single-use reset token and build a link to the front-end page.
         var token = await _users.GeneratePasswordResetTokenAsync(user);
-        var result = await _users.ResetPasswordAsync(user, token, tempPassword);
-        if (!result.Succeeded)
-            throw new ValidationException(string.Join(" ", result.Errors.Select(e => e.Description)));
+        var link = $"{_urls.FrontendBaseUrl.TrimEnd('/')}/restore-password" +
+                   $"?email={WebUtility.UrlEncode(user.Email)}&token={WebUtility.UrlEncode(token)}";
 
-        var subject = "Tu contrasena temporal / Your temporary password";
+        var subject = "Reset your password";
         var body = $@"
 <div style=""font-family:Segoe UI,Arial,sans-serif;max-width:480px;margin:auto"">
-  <h2>Recuperacion de contrasena</h2>
-  <p>Hola{(string.IsNullOrWhiteSpace(user.FullName) ? "" : $" {user.FullName}")},</p>
-  <p>Tu contrasena temporal es:</p>
-  <p style=""font-size:20px;font-weight:bold;letter-spacing:1px;background:#f1f5f9;padding:12px 16px;border-radius:8px;display:inline-block"">{tempPassword}</p>
-  <p>Inicia sesion con ella y cambiala lo antes posible desde tu perfil.</p>
+  <h2>Password reset</h2>
+  <p>Hi{(string.IsNullOrWhiteSpace(user.FullName) ? "" : $" {user.FullName}")},</p>
+  <p>We received a request to reset your password. Click the button below to choose a new one:</p>
+  <p style=""text-align:center;margin:28px 0"">
+    <a href=""{link}"" style=""background:#6366f1;color:#fff;text-decoration:none;padding:12px 22px;border-radius:10px;font-weight:bold;display:inline-block"">Reset password</a>
+  </p>
+  <p style=""color:#64748b;font-size:13px"">Or copy and paste this link into your browser:</p>
+  <p style=""word-break:break-all;font-size:13px"">{link}</p>
   <hr/>
-  <p style=""color:#64748b;font-size:13px"">Si no solicitaste este cambio, ignora este correo.</p>
+  <p style=""color:#64748b;font-size:13px"">This link expires soon. If you did not request this, you can safely ignore this email.</p>
 </div>";
 
         await _email.SendAsync(user.Email!, subject, body, ct);
-        _logger.LogInformation("Contrasena temporal generada y enviada para {Email}.", user.Email);
+        _logger.LogInformation("Password reset link generated and sent to {Email}.", user.Email);
     }
 
-    /// <summary>
-    /// Genera una contrasena temporal segura que cumple la politica de Identity
-    /// (minusculas + mayusculas + digito, longitud 12).
-    /// </summary>
-    private static string GenerateTempPassword()
+    public async Task ResetPasswordAsync(ResetPasswordDto dto, CancellationToken ct = default)
     {
-        const string lower = "abcdefghijkmnpqrstuvwxyz";
-        const string upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
-        const string digits = "23456789";
-        const string all = lower + upper + digits;
+        var user = await _users.FindByEmailAsync(dto.Email);
+        // Use a generic error so we don't reveal whether the email exists.
+        if (user is null)
+            throw new ValidationException("Invalid or expired reset link.");
 
-        Span<char> chars = stackalloc char[12];
-        chars[0] = lower[RandomNumberGenerator.GetInt32(lower.Length)];
-        chars[1] = upper[RandomNumberGenerator.GetInt32(upper.Length)];
-        chars[2] = digits[RandomNumberGenerator.GetInt32(digits.Length)];
-        for (var i = 3; i < chars.Length; i++)
-            chars[i] = all[RandomNumberGenerator.GetInt32(all.Length)];
-
-        // Mezcla para no dejar el patron fijo al inicio.
-        for (var i = chars.Length - 1; i > 0; i--)
+        var result = await _users.ResetPasswordAsync(user, dto.Token, dto.NewPassword);
+        if (!result.Succeeded)
         {
-            var j = RandomNumberGenerator.GetInt32(i + 1);
-            (chars[i], chars[j]) = (chars[j], chars[i]);
+            // Token errors are reported generically; password-policy errors are surfaced.
+            var isTokenError = result.Errors.Any(e => e.Code.Contains("Token", StringComparison.OrdinalIgnoreCase));
+            throw new ValidationException(isTokenError
+                ? "Invalid or expired reset link."
+                : string.Join(" ", result.Errors.Select(e => e.Description)));
         }
-        return new string(chars);
+
+        _logger.LogInformation("Password successfully reset for {Email}.", user.Email);
     }
 
     private async Task<AuthResultDto> BuildResultAsync(ApplicationUser user)

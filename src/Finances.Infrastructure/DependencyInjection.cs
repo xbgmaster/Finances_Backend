@@ -71,6 +71,12 @@ public static class DependencyInjection
         services.AddSingleton(email);
         services.AddScoped<IEmailSender, SmtpEmailSender>();
 
+        // Public URLs (used to build the password reset link).
+        services.AddSingleton(new AppUrls
+        {
+            FrontendBaseUrl = configuration["App:FrontendUrl"] ?? "http://localhost:5173",
+        });
+
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IProfileService, ProfileService>();
         services.AddScoped<IUserAdminService, UserAdminService>();

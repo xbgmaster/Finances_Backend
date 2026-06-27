@@ -26,7 +26,14 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> ForgotPassword(ForgotPasswordDto dto, CancellationToken ct)
     {
         await _auth.ForgotPasswordAsync(dto, ct);
-        // Respuesta generica: no revela si el correo existe.
-        return Ok(new { message = "If the email exists, a temporary password has been sent." });
+        // Generic response: does not reveal whether the email exists.
+        return Ok(new { message = "If the email exists, a password reset link has been sent." });
+    }
+
+    [HttpPost("reset-password")]
+    public async Task<IActionResult> ResetPassword(ResetPasswordDto dto, CancellationToken ct)
+    {
+        await _auth.ResetPasswordAsync(dto, ct);
+        return Ok(new { message = "Your password has been reset. You can now sign in." });
     }
 }

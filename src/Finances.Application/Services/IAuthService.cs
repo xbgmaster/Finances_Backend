@@ -8,8 +8,13 @@ public interface IAuthService
     Task<AuthResultDto> LoginAsync(LoginDto dto, CancellationToken ct = default);
 
     /// <summary>
-    /// Si el correo existe, genera una contrasena temporal, la asigna a la cuenta
-    /// y la envia por email. No revela si el correo existe o no.
+    /// If the email exists, generates a password reset token and emails a reset
+    /// link to the user. Does not reveal whether the email exists.
     /// </summary>
     Task ForgotPasswordAsync(ForgotPasswordDto dto, CancellationToken ct = default);
+
+    /// <summary>
+    /// Validates the reset token and sets the user's new password.
+    /// </summary>
+    Task ResetPasswordAsync(ResetPasswordDto dto, CancellationToken ct = default);
 }
