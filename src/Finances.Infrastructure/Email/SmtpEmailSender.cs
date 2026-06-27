@@ -43,6 +43,7 @@ public class SmtpEmailSender : IEmailSender
         {
             EnableSsl = _settings.UseSsl,
             Credentials = new NetworkCredential(_settings.User, _settings.Password),
+            Timeout = Math.Max(1, _settings.TimeoutSeconds) * 1000,
         };
 
         await client.SendMailAsync(message, ct);

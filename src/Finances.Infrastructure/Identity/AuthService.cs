@@ -103,8 +103,17 @@ public class AuthService : IAuthService
   <p style=""color:#64748b;font-size:13px"">This link expires soon. If you did not request this, you can safely ignore this email.</p>
 </div>";
 
-        await _email.SendAsync(user.Email!, subject, body, ct);
-        _logger.LogInformation("Password reset link generated and sent to {Email}.", user.Email);
+        // Sending must never break the request: forgot-password always returns 200
+        // (so it never reveals whether the email exists). Failures are logged.
+        try
+        {
+            await _email.SendAsync(user.Email!, subject, body, ct);
+            _logger.LogInformation("Password reset link generated and sent to {Email}.", user.Email);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send password reset email to {Email}.", user.Email);
+        }
     }
 
     public async Task ResetPasswordAsync(ResetPasswordDto dto, CancellationToken ct = default)

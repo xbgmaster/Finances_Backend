@@ -57,9 +57,13 @@ public static class DependencyInjection
             .AddEntityFrameworkStores<FinanceDbContext>()
             .AddDefaultTokenProviders(); // necesario para tokens de reseteo de contrasena
 
-        // Correo (SMTP). Si Email:Host esta vacio, el sender registra en log (dev).
+        // Email delivery. Provider "smtp" (default) or "brevo" (HTTP API, works on
+        // Render free tier where outbound SMTP ports are blocked). If not configured,
+        // the sender just logs the message (useful for local development).
         var email = new EmailSettings
         {
+            Provider = configuration["Email:Provider"] ?? "smtp",
+            ApiKey = configuration["Email:ApiKey"] ?? string.Empty,
             Host = configuration["Email:Host"] ?? string.Empty,
             Port = int.TryParse(configuration["Email:Port"], out var p) ? p : 587,
             User = configuration["Email:User"] ?? string.Empty,
@@ -67,9 +71,15 @@ public static class DependencyInjection
             From = configuration["Email:From"] ?? "no-reply@finances.local",
             FromName = configuration["Email:FromName"] ?? "Finances",
             UseSsl = !bool.TryParse(configuration["Email:UseSsl"], out var ssl) || ssl,
+            TimeoutSeconds = int.TryParse(configuration["Email:TimeoutSeconds"], out var ts) ? ts : 20,
         };
         services.AddSingleton(email);
-        services.AddScoped<IEmailSender, SmtpEmailSender>();
+        services.AddHttpClient();
+
+        if (email.UsesBrevo)
+            services.AddScoped<IEmailSender, BrevoEmailSender>();
+        else
+            services.AddScoped<IEmailSender, SmtpEmailSender>();
 
         // Public URLs (used to build the password reset link).
         services.AddSingleton(new AppUrls
