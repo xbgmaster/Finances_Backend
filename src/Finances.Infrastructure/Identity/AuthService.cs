@@ -90,18 +90,18 @@ public class AuthService : IAuthService
 
         var subject = "Reset your password";
         var body = $@"
-<div style=""font-family:Segoe UI,Arial,sans-serif;max-width:480px;margin:auto"">
-  <h2>Password reset</h2>
-  <p>Hi{(string.IsNullOrWhiteSpace(user.FullName) ? "" : $" {user.FullName}")},</p>
-  <p>We received a request to reset your password. Click the button below to choose a new one:</p>
-  <p style=""text-align:center;margin:28px 0"">
-    <a href=""{link}"" style=""background:#6366f1;color:#fff;text-decoration:none;padding:12px 22px;border-radius:10px;font-weight:bold;display:inline-block"">Reset password</a>
-  </p>
-  <p style=""color:#64748b;font-size:13px"">Or copy and paste this link into your browser:</p>
-  <p style=""word-break:break-all;font-size:13px"">{link}</p>
-  <hr/>
-  <p style=""color:#64748b;font-size:13px"">This link expires soon. If you did not request this, you can safely ignore this email.</p>
-</div>";
+        <div style=""font-family:Segoe UI,Arial,sans-serif;max-width:480px;margin:auto"">
+          <h2>Password reset</h2>
+          <p>Hi{(string.IsNullOrWhiteSpace(user.FullName) ? "" : $" {user.FullName}")},</p>
+          <p>We received a request to reset your password. Click the button below to choose a new one:</p>
+          <p style=""text-align:center;margin:28px 0"">
+            <a href=""{link}"" style=""background:#6366f1;color:#fff;text-decoration:none;padding:12px 22px;border-radius:10px;font-weight:bold;display:inline-block"">Reset password</a>
+          </p>
+          <p style=""color:#64748b;font-size:13px"">Or copy and paste this link into your browser:</p>
+          <p style=""word-break:break-all;font-size:13px"">{link}</p>
+          <hr/>
+          <p style=""color:#64748b;font-size:13px"">This link expires soon. If you did not request this, you can safely ignore this email.</p>
+        </div>";
 
         // Sending must never break the request: forgot-password always returns 200
         // (so it never reveals whether the email exists). Failures are logged.
