@@ -22,7 +22,7 @@ public class CategoryService : ICategoryService
         return await _db.Categories
             .Where(c => c.UserId == userId)
             .OrderBy(c => c.Name)
-            .Select(c => new CategoryDto(c.Id, c.Name, c.Icon, c.Color, c.MonthlyBudget))
+            .Select(c => new CategoryDto(c.Id, c.Name, c.Icon, c.Color, c.MonthlyBudget, c.IsSystem))
             .ToListAsync(ct);
     }
 
@@ -30,7 +30,7 @@ public class CategoryService : ICategoryService
     {
         var userId = _current.RequireUserId();
         var c = await _db.Categories.FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId, ct);
-        return c is null ? null : new CategoryDto(c.Id, c.Name, c.Icon, c.Color, c.MonthlyBudget);
+        return c is null ? null : new CategoryDto(c.Id, c.Name, c.Icon, c.Color, c.MonthlyBudget, c.IsSystem);
     }
 
     public async Task<CategoryDto> CreateAsync(CategoryCreateDto dto, CancellationToken ct = default)
@@ -46,7 +46,7 @@ public class CategoryService : ICategoryService
         };
         _db.Categories.Add(category);
         await _db.SaveChangesAsync(ct);
-        return new CategoryDto(category.Id, category.Name, category.Icon, category.Color, category.MonthlyBudget);
+        return new CategoryDto(category.Id, category.Name, category.Icon, category.Color, category.MonthlyBudget, category.IsSystem);
     }
 
     public async Task<CategoryDto> UpdateAsync(int id, CategoryCreateDto dto, CancellationToken ct = default)
@@ -55,12 +55,15 @@ public class CategoryService : ICategoryService
         var category = await _db.Categories.FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId, ct)
             ?? throw new NotFoundException("La categoria no existe.");
 
+        if (category.IsSystem)
+            throw new ConflictException("Esta es una categoria del sistema y no se puede modificar.");
+
         category.Name = dto.Name.Trim();
         category.Icon = string.IsNullOrWhiteSpace(dto.Icon) ? category.Icon : dto.Icon.Trim();
         category.Color = string.IsNullOrWhiteSpace(dto.Color) ? category.Color : dto.Color.Trim();
         category.MonthlyBudget = dto.MonthlyBudget;
         await _db.SaveChangesAsync(ct);
-        return new CategoryDto(category.Id, category.Name, category.Icon, category.Color, category.MonthlyBudget);
+        return new CategoryDto(category.Id, category.Name, category.Icon, category.Color, category.MonthlyBudget, category.IsSystem);
     }
 
     public async Task DeleteAsync(int id, CancellationToken ct = default)
@@ -68,6 +71,9 @@ public class CategoryService : ICategoryService
         var userId = _current.RequireUserId();
         var category = await _db.Categories.FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId, ct)
             ?? throw new NotFoundException("La categoria no existe.");
+
+        if (category.IsSystem)
+            throw new ConflictException("Esta es una categoria del sistema y no se puede eliminar.");
 
         var hasExpenses = await _db.Expenses.AnyAsync(e => e.CategoryId == id, ct);
         if (hasExpenses)

@@ -17,13 +17,35 @@ public static class DefaultCategories
         ("Otros", "tag", "#64748b", null),
     };
 
-    public static IEnumerable<Category> For(string userId) =>
-        Items.Select(i => new Category
+    public static IEnumerable<Category> For(string userId)
+    {
+        foreach (var i in Items)
         {
-            Name = i.Name,
-            Icon = i.Icon,
-            Color = i.Color,
-            MonthlyBudget = i.Budget,
-            UserId = userId
-        });
+            yield return new Category
+            {
+                Name = i.Name,
+                Icon = i.Icon,
+                Color = i.Color,
+                MonthlyBudget = i.Budget,
+                UserId = userId
+            };
+        }
+
+        yield return SystemDebtPayments(userId);
+    }
+
+    /// <summary>
+    /// Built-in, non-editable category that collects the expenses mirrored from credit
+    /// payments. Created for new users here and lazily for existing users when they
+    /// register their first credit payment.
+    /// </summary>
+    public static Category SystemDebtPayments(string userId) => new()
+    {
+        Name = Category.DebtPaymentsSystemName,
+        Icon = "bank",
+        Color = "#ef4444",
+        MonthlyBudget = null,
+        IsSystem = true,
+        UserId = userId
+    };
 }

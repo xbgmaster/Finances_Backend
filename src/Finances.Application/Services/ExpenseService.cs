@@ -79,6 +79,9 @@ public class ExpenseService : IExpenseService
         var expense = await _db.Expenses.FirstOrDefaultAsync(e => e.Id == id && e.UserId == userId, ct)
             ?? throw new NotFoundException("El gasto no existe.");
 
+        if (expense.CreditPaymentId is not null)
+            throw new ConflictException("Este gasto proviene de un pago de credito. Modificalo o eliminalo desde la seccion de Creditos.");
+
         if (!string.IsNullOrEmpty(expense.ReceiptUrl))
             _storage.Delete(expense.ReceiptUrl);
 

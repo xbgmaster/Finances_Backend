@@ -18,6 +18,15 @@ public class ExpenseConfiguration : IEntityTypeConfiguration<Expense>
             .HasForeignKey(e => e.CategoryId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        // An expense may be linked one-to-one to the credit payment that generated it.
+        // Deleting the payment (or its parent credit, which cascades to payments) removes
+        // the mirrored expense automatically.
+        builder.HasOne(e => e.CreditPayment)
+            .WithOne()
+            .HasForeignKey<Expense>(e => e.CreditPaymentId)
+            .OnDelete(DeleteBehavior.Cascade);
+        builder.HasIndex(e => e.CreditPaymentId).IsUnique();
+
         builder.Property(e => e.UserId).IsRequired().HasMaxLength(450);
         builder.HasIndex(e => e.UserId);
         builder.HasOne<ApplicationUser>()

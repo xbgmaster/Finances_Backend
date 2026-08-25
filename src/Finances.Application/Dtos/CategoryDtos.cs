@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Finances.Application.Dtos;
 
-public record CategoryDto(int Id, string Name, string Icon, string Color, decimal? MonthlyBudget);
+public record CategoryDto(int Id, string Name, string Icon, string Color, decimal? MonthlyBudget, bool IsSystem);
 
 public class CategoryCreateDto
 {

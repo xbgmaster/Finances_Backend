@@ -13,6 +13,7 @@ public class CategoryConfiguration : IEntityTypeConfiguration<Category>
         builder.Property(c => c.Icon).HasMaxLength(60);
         builder.Property(c => c.Color).HasMaxLength(9);
         builder.Property(c => c.MonthlyBudget).HasPrecision(18, 2);
+        builder.Property(c => c.IsSystem).HasDefaultValue(false);
 
         builder.Property(c => c.UserId).IsRequired().HasMaxLength(450);
         builder.HasIndex(c => c.UserId);
