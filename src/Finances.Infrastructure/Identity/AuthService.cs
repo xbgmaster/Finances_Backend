@@ -141,7 +141,7 @@ public class AuthService : IAuthService
         var roles = await _users.GetRolesAsync(user);
         var token = _jwt.Generate(user.Id, user.Email!, roles);
         var role = roles.Contains(AdminRole) ? AdminRole : UserRole;
-        var info = new UserInfoDto(user.Id, user.Email!, user.FullName, role, user.OnboardingCompleted);
+        var info = new UserInfoDto(user.Id, user.Email!, user.FullName, role, user.OnboardingCompleted, user.Currency);
         return new AuthResultDto(token.Token, token.ExpiresAt, info);
     }
 }

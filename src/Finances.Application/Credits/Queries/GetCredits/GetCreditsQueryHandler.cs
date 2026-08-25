@@ -31,8 +31,9 @@ public class GetCreditsQueryHandler : IRequestHandler<GetCreditsQuery, IReadOnly
             .Select(g => new { CreditId = g.Key, Total = g.Sum(p => p.Amount) })
             .ToDictionaryAsync(x => x.CreditId, x => x.Total, cancellationToken);
 
+        var asOf = DateTime.UtcNow;
         return credits
-            .Select(c => CreditMapper.ToListItem(c, paidByCredit.GetValueOrDefault(c.Id)))
+            .Select(c => CreditMapper.ToListItem(c, paidByCredit.GetValueOrDefault(c.Id), asOf))
             .ToList();
     }
 }

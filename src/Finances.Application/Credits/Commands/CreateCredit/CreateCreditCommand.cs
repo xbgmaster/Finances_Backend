@@ -30,5 +30,9 @@ public record CreateCreditCommand : IRequest<CreditDto>
     public decimal AnnualInterestRate { get; init; }
     public int TermMonths { get; init; }
     public DateTime StartDate { get; init; }
+
+    /// <summary>Day of the month (1-31) the installment/statement is due.</summary>
+    public int PaymentDueDay { get; init; }
+
     public string? Currency { get; init; }
 }

@@ -32,6 +32,7 @@ public class CreateCreditCommandHandler : IRequestHandler<CreateCreditCommand, C
             AnnualInterestRate = request.AnnualInterestRate,
             TermMonths = request.TermMonths,
             StartDate = DateTime.SpecifyKind(request.StartDate, DateTimeKind.Utc),
+            PaymentDueDay = request.PaymentDueDay,
             Currency = string.IsNullOrWhiteSpace(request.Currency) ? null : request.Currency.Trim().ToUpperInvariant(),
             UserId = userId
         };
@@ -40,6 +41,6 @@ public class CreateCreditCommandHandler : IRequestHandler<CreateCreditCommand, C
         await _db.SaveChangesAsync(cancellationToken);
 
         // A brand new credit has no payments yet, so total paid is zero.
-        return CreditMapper.ToListItem(credit, totalPaid: 0m);
+        return CreditMapper.ToListItem(credit, totalPaid: 0m, DateTime.UtcNow);
     }
 }

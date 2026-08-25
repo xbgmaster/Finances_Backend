@@ -37,10 +37,24 @@ public class Credit
     /// <summary>Date the debt was acquired.</summary>
     public DateTime StartDate { get; set; } = DateTime.UtcNow;
 
+    /// <summary>
+    /// Day of the month (1-31) the installment / statement is due. Used to derive the
+    /// next due date and to alert the user when a payment is upcoming or overdue.
+    /// Clamped to the length of each month (e.g. 31 becomes the last day of February).
+    /// </summary>
+    public int PaymentDueDay { get; set; } = 1;
+
     /// <summary>ISO currency code (optional), e.g. "USD".</summary>
     public string? Currency { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    /// <summary>
+    /// Tracks the last due-date reminder emailed for this credit, as a key
+    /// "{nextDueDate:yyyyMMdd}:{level}". Prevents sending the same reminder twice; a new
+    /// key (new due date or an escalation from due-soon to overdue) triggers a fresh email.
+    /// </summary>
+    public string? LastReminderKey { get; set; }
 
     /// <summary>Owner of the credit (Identity user id).</summary>
     public string UserId { get; set; } = string.Empty;

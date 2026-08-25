@@ -46,6 +46,7 @@ public record UserInfoDto(
     string Email,
     string? FullName,
     string Role,
-    bool OnboardingCompleted);
+    bool OnboardingCompleted,
+    string Currency);
 
 public record AuthResultDto(string Token, DateTime ExpiresAt, UserInfoDto User);

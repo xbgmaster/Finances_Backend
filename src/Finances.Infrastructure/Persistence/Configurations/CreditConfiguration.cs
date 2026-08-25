@@ -15,6 +15,8 @@ public class CreditConfiguration : IEntityTypeConfiguration<Credit>
         builder.Property(c => c.PrepaymentRebateMethod).HasConversion<string>().HasMaxLength(30).HasDefaultValue(PrepaymentRebateMethod.None);
         builder.Property(c => c.PrepaymentEffect).HasConversion<string>().HasMaxLength(30).HasDefaultValue(PrepaymentEffect.ReduceTerm);
         builder.Property(c => c.PrepaymentPenaltyRate).HasPrecision(9, 4);
+        builder.Property(c => c.PaymentDueDay).HasDefaultValue(1);
+        builder.Property(c => c.LastReminderKey).HasMaxLength(40);
         builder.Property(c => c.Principal).HasPrecision(18, 2);
         builder.Property(c => c.AnnualInterestRate).HasPrecision(9, 4);
         builder.Property(c => c.Currency).HasMaxLength(3);

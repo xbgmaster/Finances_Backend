@@ -4,6 +4,7 @@ using Finances.Application.Credits.Commands.DeletePayment;
 using Finances.Application.Credits.Commands.RegisterPayment;
 using Finances.Application.Credits.Commands.UpdatePayment;
 using Finances.Application.Credits.Queries.GetAmortizationSchedule;
+using Finances.Application.Credits.Queries.GetCreditAlerts;
 using Finances.Application.Credits.Queries.GetCreditPayments;
 using Finances.Application.Credits.Queries.GetCreditSummary;
 using Finances.Application.Credits.Queries.GetCredits;
@@ -26,6 +27,10 @@ public class CreditsController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<IEnumerable<CreditDto>>> GetAll(CancellationToken ct) =>
         Ok(await _mediator.Send(new GetCreditsQuery(), ct));
+
+    [HttpGet("alerts")]
+    public async Task<ActionResult<CreditAlertsDto>> GetAlerts(CancellationToken ct) =>
+        Ok(await _mediator.Send(new GetCreditAlertsQuery(), ct));
 
     [HttpGet("{id:int}")]
     public async Task<ActionResult<CreditSummaryDto>> GetById(int id, CancellationToken ct)

@@ -16,6 +16,12 @@ public record CreditDto(
     decimal TotalPaid,
     decimal OutstandingPrincipal,
     decimal ProgressPercent,
+    int PaymentDueDay,
+    DateTime NextDueDate,
+    int DaysUntilDue,
+    bool IsOverdue,
+    bool IsDueSoon,
+    string AlertLevel,
     string Status);
 
 /// <summary>A recorded payment against a credit.</summary>
@@ -52,7 +58,29 @@ public record CreditSummaryDto(
     int InstallmentsRemaining,
     int ExpectedInstallmentsToDate,
     decimal ProgressPercent,
+    int PaymentDueDay,
+    DateTime NextDueDate,
+    int DaysUntilDue,
+    bool IsOverdue,
+    bool IsDueSoon,
+    string AlertLevel,
     string Status);
+
+/// <summary>A single credit that currently needs the user's attention (due soon or overdue).</summary>
+public record CreditAlertItemDto(
+    int CreditId,
+    string Name,
+    string AlertLevel,
+    DateTime NextDueDate,
+    int DaysUntilDue,
+    decimal MonthlyInstallment,
+    string? Currency);
+
+/// <summary>Aggregated payment alerts for the current user (feeds the bell + dashboard banner).</summary>
+public record CreditAlertsDto(
+    int OverdueCount,
+    int DueSoonCount,
+    IReadOnlyList<CreditAlertItemDto> Items);
 
 /// <summary>One row of the amortization schedule exposed to the API.</summary>
 public record AmortizationRowDto(

@@ -2,6 +2,7 @@ using Finances.Application.Common;
 using Finances.Application.Services;
 using Finances.Infrastructure.Email;
 using Finances.Infrastructure.Identity;
+using Finances.Infrastructure.Notifications;
 using Finances.Infrastructure.Persistence;
 using Finances.Infrastructure.Storage;
 using Microsoft.AspNetCore.Identity;
@@ -90,6 +91,17 @@ public static class DependencyInjection
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IProfileService, ProfileService>();
         services.AddScoped<IUserAdminService, UserAdminService>();
+
+        // Background job that emails credit payment reminders (due-soon / overdue).
+        var reminders = new CreditReminderOptions
+        {
+            Enabled = !bool.TryParse(configuration["CreditReminders:Enabled"], out var re) || re,
+            CheckEveryHours = double.TryParse(configuration["CreditReminders:CheckEveryHours"], out var ch) ? ch : 12,
+            StartupDelaySeconds = double.TryParse(configuration["CreditReminders:StartupDelaySeconds"], out var sd) ? sd : 30,
+        };
+        services.AddSingleton(reminders);
+        if (reminders.Enabled)
+            services.AddHostedService<CreditReminderService>();
 
         return services;
     }

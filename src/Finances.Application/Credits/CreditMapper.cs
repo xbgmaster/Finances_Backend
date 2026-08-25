@@ -11,6 +11,9 @@ namespace Finances.Application.Credits;
 /// </summary>
 public static class CreditMapper
 {
+    /// <summary>How many days before the due date we start warning "your installment is due soon".</summary>
+    private const int DueSoonThresholdDays = 3;
+
     public static CreditSummaryDto ToSummary(Credit credit, decimal totalPaid, DateTime asOf)
     {
         var plan = AmortizationCalculator.BuildPlan(credit.Principal, credit.AnnualInterestRate, credit.TermMonths, credit.InterestModel);
@@ -27,6 +30,8 @@ public static class CreditMapper
             2, MidpointRounding.AwayFromZero);
         var netSavings = Math.Max(progress.SavingsIfPaidOffToday - penaltyAmount, 0m);
         var payoffToday = Math.Round(progress.OutstandingPrincipal + penaltyAmount, 2, MidpointRounding.AwayFromZero);
+
+        var due = ComputeDueStatus(credit, progress.InstallmentsCovered, progress.IsPaidOff, asOf);
 
         return new CreditSummaryDto(
             Id: credit.Id,
@@ -58,10 +63,16 @@ public static class CreditMapper
             InstallmentsRemaining: Math.Max(credit.TermMonths - progress.InstallmentsCovered, 0),
             ExpectedInstallmentsToDate: ExpectedInstallmentsToDate(credit, asOf),
             ProgressPercent: progressPercent,
+            PaymentDueDay: credit.PaymentDueDay,
+            NextDueDate: due.NextDueDate,
+            DaysUntilDue: due.DaysUntilDue,
+            IsOverdue: due.IsOverdue,
+            IsDueSoon: due.IsDueSoon,
+            AlertLevel: due.AlertLevel,
             Status: progress.IsPaidOff ? "PaidOff" : "Active");
     }
 
-    public static CreditDto ToListItem(Credit credit, decimal totalPaid)
+    public static CreditDto ToListItem(Credit credit, decimal totalPaid, DateTime asOf)
     {
         var plan = AmortizationCalculator.BuildPlan(credit.Principal, credit.AnnualInterestRate, credit.TermMonths, credit.InterestModel);
         var progress = AmortizationCalculator.ComputeProgress(plan, credit.Principal, totalPaid);
@@ -69,6 +80,8 @@ public static class CreditMapper
         var progressPercent = credit.Principal <= 0
             ? 0m
             : Math.Round(progress.PrincipalPaid / credit.Principal * 100m, 2, MidpointRounding.AwayFromZero);
+
+        var due = ComputeDueStatus(credit, progress.InstallmentsCovered, progress.IsPaidOff, asOf);
 
         return new CreditDto(
             Id: credit.Id,
@@ -85,6 +98,12 @@ public static class CreditMapper
             TotalPaid: progress.TotalPaid,
             OutstandingPrincipal: progress.OutstandingPrincipal,
             ProgressPercent: progressPercent,
+            PaymentDueDay: credit.PaymentDueDay,
+            NextDueDate: due.NextDueDate,
+            DaysUntilDue: due.DaysUntilDue,
+            IsOverdue: due.IsOverdue,
+            IsDueSoon: due.IsDueSoon,
+            AlertLevel: due.AlertLevel,
             Status: progress.IsPaidOff ? "PaidOff" : "Active");
     }
 
@@ -110,4 +129,46 @@ public static class CreditMapper
         if (asOf.Day < credit.StartDate.Day) months--;
         return Math.Clamp(months, 0, credit.TermMonths);
     }
+
+    /// <summary>
+    /// Derives the payment alert for a credit: the next due date (based on the user's
+    /// payment due day), how many days remain, and whether it is due soon or already
+    /// overdue. Everything is derived from the terms + payments, nothing is stored.
+    /// </summary>
+    private static DueStatus ComputeDueStatus(Credit credit, int installmentsCovered, bool isPaidOff, DateTime asOf)
+    {
+        if (isPaidOff)
+            return new DueStatus(credit.StartDate, 0, false, false, "PaidOff");
+
+        // The next installment the user still owes. Its calendar due date decides the alert.
+        var nextNumber = Math.Min(installmentsCovered + 1, credit.TermMonths);
+        var nextDue = DueDateForInstallment(credit, nextNumber);
+
+        var daysUntil = (int)Math.Floor((nextDue.Date - asOf.Date).TotalDays);
+        var overdue = daysUntil < 0;
+        var dueSoon = !overdue && daysUntil <= DueSoonThresholdDays;
+        var level = overdue ? "Overdue" : dueSoon ? "DueSoon" : "Upcoming";
+
+        return new DueStatus(nextDue, daysUntil, overdue, dueSoon, level);
+    }
+
+    /// <summary>
+    /// Calendar due date of the k-th installment: the payment due day of the month that is
+    /// k months after the start month, clamped to the month length (e.g. a due day of 31
+    /// becomes Feb 28/29).
+    /// </summary>
+    private static DateTime DueDateForInstallment(Credit credit, int installmentNumber)
+    {
+        var baseMonth = new DateTime(credit.StartDate.Year, credit.StartDate.Month, 1, 0, 0, 0, DateTimeKind.Utc)
+            .AddMonths(installmentNumber);
+        var day = Math.Min(Math.Max(credit.PaymentDueDay, 1), DateTime.DaysInMonth(baseMonth.Year, baseMonth.Month));
+        return new DateTime(baseMonth.Year, baseMonth.Month, day, 0, 0, 0, DateTimeKind.Utc);
+    }
+
+    private readonly record struct DueStatus(
+        DateTime NextDueDate,
+        int DaysUntilDue,
+        bool IsOverdue,
+        bool IsDueSoon,
+        string AlertLevel);
 }

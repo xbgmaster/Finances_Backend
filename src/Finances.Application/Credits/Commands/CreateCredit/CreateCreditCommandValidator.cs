@@ -43,7 +43,11 @@ public class CreateCreditCommandValidator : AbstractValidator<CreateCreditComman
         RuleFor(x => x.StartDate)
             .NotEmpty().WithMessage("La fecha de inicio es obligatoria.");
 
+        RuleFor(x => x.PaymentDueDay)
+            .InclusiveBetween(1, 31).WithMessage("El dia de corte debe estar entre 1 y 31.");
+
         RuleFor(x => x.Currency)
-            .MaximumLength(3).WithMessage("El codigo de moneda no puede superar 3 caracteres.");
+            .NotEmpty().WithMessage("La moneda es obligatoria.")
+            .Length(3).WithMessage("El codigo de moneda debe tener 3 caracteres (ISO, ej. USD).");
     }
 }
