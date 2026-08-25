@@ -13,6 +13,18 @@ public class Credit
 
     public CreditType Type { get; set; }
 
+    /// <summary>How interest is charged (French vs simple/flat). Drives the calculation.</summary>
+    public InterestModel InterestModel { get; set; } = InterestModel.CompoundFrench;
+
+    /// <summary>How unearned interest is refunded on early payoff (mainly for flat credits).</summary>
+    public PrepaymentRebateMethod PrepaymentRebateMethod { get; set; } = PrepaymentRebateMethod.Actuarial;
+
+    /// <summary>What a partial prepayment does to the remaining plan (reduce term vs installment).</summary>
+    public PrepaymentEffect PrepaymentEffect { get; set; } = PrepaymentEffect.ReduceTerm;
+
+    /// <summary>Optional early-payoff penalty as a percentage of the prepaid amount (0 = none).</summary>
+    public decimal PrepaymentPenaltyRate { get; set; }
+
     /// <summary>Original amount borrowed (capital).</summary>
     public decimal Principal { get; set; }
 

@@ -9,13 +9,17 @@ public record AmortizationRow(
     decimal RemainingBalance);
 
 /// <summary>
-/// The full repayment plan for a credit under the French (fixed-installment) model.
+/// The full repayment plan for a credit (French or flat). <see cref="MonthlyRate"/> is
+/// the nominal monthly rate; <see cref="EffectiveAnnualRatePercent"/> is the true annual
+/// cost (APR) derived from the installment stream, which is especially useful for flat
+/// credits where the nominal rate hides the real cost.
 /// </summary>
 public record AmortizationPlan(
     decimal MonthlyRate,
     decimal MonthlyInstallment,
     decimal TotalToPay,
     decimal TotalInterest,
+    decimal EffectiveAnnualRatePercent,
     IReadOnlyList<AmortizationRow> Schedule);
 
 /// <summary>

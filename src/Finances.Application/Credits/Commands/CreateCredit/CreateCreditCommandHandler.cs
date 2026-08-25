@@ -24,6 +24,10 @@ public class CreateCreditCommandHandler : IRequestHandler<CreateCreditCommand, C
         {
             Name = request.Name.Trim(),
             Type = Enum.Parse<CreditType>(request.Type, ignoreCase: true),
+            InterestModel = Enum.Parse<InterestModel>(request.InterestModel, ignoreCase: true),
+            PrepaymentRebateMethod = Enum.Parse<PrepaymentRebateMethod>(request.PrepaymentRebateMethod, ignoreCase: true),
+            PrepaymentEffect = Enum.Parse<PrepaymentEffect>(request.PrepaymentEffect, ignoreCase: true),
+            PrepaymentPenaltyRate = request.PrepaymentPenaltyRate,
             Principal = request.Principal,
             AnnualInterestRate = request.AnnualInterestRate,
             TermMonths = request.TermMonths,
