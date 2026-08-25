@@ -12,6 +12,8 @@ public interface IFinanceDbContext
     DbSet<Category> Categories { get; }
     DbSet<Income> Incomes { get; }
     DbSet<Expense> Expenses { get; }
+    DbSet<Credit> Credits { get; }
+    DbSet<CreditPayment> CreditPayments { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }
