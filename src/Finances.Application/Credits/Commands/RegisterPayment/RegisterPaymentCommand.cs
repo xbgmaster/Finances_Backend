@@ -10,6 +10,8 @@ namespace Finances.Application.Credits.Commands.RegisterPayment;
 public record RegisterPaymentCommand : IRequest<CreditSummaryDto>
 {
     public int CreditId { get; init; }
+
+    /// <summary>Amount in the credit's own currency (drives the amortization and the mirrored expense).</summary>
     public decimal Amount { get; init; }
     public DateTime Date { get; init; }
     public string? Note { get; init; }

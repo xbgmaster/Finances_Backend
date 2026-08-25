@@ -8,5 +8,6 @@ public interface IProjectionService
         decimal targetSavingsRate = 0.20m,
         int historyMonths = 6,
         string lang = "en",
+        string? currency = null,
         CancellationToken ct = default);
 }

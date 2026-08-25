@@ -20,6 +20,7 @@ public class ProjectionController : ControllerBase
         [FromQuery] decimal savingsRate = 0.20m,
         [FromQuery] int historyMonths = 6,
         [FromQuery] string lang = "en",
+        [FromQuery] string? currency = null,
         CancellationToken ct = default)
     {
         if (savingsRate is < 0m or > 0.9m)
@@ -27,6 +28,6 @@ public class ProjectionController : ControllerBase
         if (historyMonths is < 2 or > 24)
             throw new ValidationException("historyMonths debe estar entre 2 y 24");
 
-        return Ok(await _service.BuildProjectionAsync(savingsRate, historyMonths, lang, ct));
+        return Ok(await _service.BuildProjectionAsync(savingsRate, historyMonths, lang, currency, ct));
     }
 }

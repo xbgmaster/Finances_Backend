@@ -11,6 +11,12 @@ public class Expense
     /// <summary>URL relativa de la imagen del recibo/factura (opcional).</summary>
     public string? ReceiptUrl { get; set; }
 
+    /// <summary>
+    /// ISO currency code of this expense (e.g. "USD"). Null means the user's base currency.
+    /// Foreign-currency expenses affect the balance of that currency, not the base one.
+    /// </summary>
+    public string? Currency { get; set; }
+
     public int CategoryId { get; set; }
     public Category? Category { get; set; }
 

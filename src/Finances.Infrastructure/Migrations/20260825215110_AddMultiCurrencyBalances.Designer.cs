@@ -3,6 +3,7 @@ using System;
 using Finances.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Finances.Infrastructure.Migrations
 {
     [DbContext(typeof(FinanceDbContext))]
-    partial class FinanceDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260825215110_AddMultiCurrencyBalances")]
+    partial class AddMultiCurrencyBalances
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -29,10 +32,6 @@ namespace Finances.Infrastructure.Migrations
                         .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Budgets")
-                        .IsRequired()
-                        .HasColumnType("jsonb");
 
                     b.Property<string>("Color")
                         .IsRequired()
@@ -177,9 +176,21 @@ namespace Finances.Infrastructure.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("character varying(30)");
 
+                    b.Property<decimal?>("ExchangeRate")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("numeric(18,6)");
+
                     b.Property<string>("Note")
                         .HasMaxLength(300)
                         .HasColumnType("character varying(300)");
+
+                    b.Property<decimal?>("PaidAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("PaidCurrency")
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)");
 
                     b.Property<string>("Type")
                         .IsRequired()
@@ -200,55 +211,6 @@ namespace Finances.Infrastructure.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("CreditPayments");
-                });
-
-            modelBuilder.Entity("Finances.Domain.Entities.CurrencyExchange", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("Date")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<decimal>("FromAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<string>("FromCurrency")
-                        .IsRequired()
-                        .HasMaxLength(3)
-                        .HasColumnType("character varying(3)");
-
-                    b.Property<string>("Note")
-                        .HasMaxLength(300)
-                        .HasColumnType("character varying(300)");
-
-                    b.Property<decimal>("Rate")
-                        .HasPrecision(18, 6)
-                        .HasColumnType("numeric(18,6)");
-
-                    b.Property<decimal>("ToAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<string>("ToCurrency")
-                        .IsRequired()
-                        .HasMaxLength(3)
-                        .HasColumnType("character varying(3)");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasMaxLength(450)
-                        .HasColumnType("character varying(450)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("CurrencyExchanges");
                 });
 
             modelBuilder.Entity("Finances.Domain.Entities.Expense", b =>
@@ -583,15 +545,6 @@ namespace Finances.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Credit");
-                });
-
-            modelBuilder.Entity("Finances.Domain.Entities.CurrencyExchange", b =>
-                {
-                    b.HasOne("Finances.Infrastructure.Identity.ApplicationUser", null)
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
                 });
 
             modelBuilder.Entity("Finances.Domain.Entities.Expense", b =>

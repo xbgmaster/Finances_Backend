@@ -10,7 +10,18 @@ public class Category
     public string Name { get; set; } = string.Empty;
     public string Icon { get; set; } = "tag";
     public string Color { get; set; } = "#6366f1";
+
+    /// <summary>
+    /// Budget in the user's base currency. Kept for backward compatibility; it mirrors the
+    /// base-currency entry of <see cref="Budgets"/>.
+    /// </summary>
     public decimal? MonthlyBudget { get; set; }
+
+    /// <summary>
+    /// Optional monthly budget per ISO currency, e.g. { "USD": 500, "COP": 1500000 }. Lets the
+    /// same category have an independent budget in each currency (no conversion). Stored as jsonb.
+    /// </summary>
+    public Dictionary<string, decimal> Budgets { get; set; } = new();
 
     /// <summary>
     /// System-managed category that the user cannot edit or delete. Currently used only for

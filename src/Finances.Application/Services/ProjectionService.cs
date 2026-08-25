@@ -14,17 +14,20 @@ public class ProjectionService : IProjectionService
 {
     private readonly IFinanceDbContext _db;
     private readonly ICurrentUser _current;
+    private readonly IProfileService _profile;
 
-    public ProjectionService(IFinanceDbContext db, ICurrentUser current)
+    public ProjectionService(IFinanceDbContext db, ICurrentUser current, IProfileService profile)
     {
         _db = db;
         _current = current;
+        _profile = profile;
     }
 
     public async Task<ProjectionDto> BuildProjectionAsync(
         decimal targetSavingsRate = 0.20m,
         int historyMonths = 6,
         string lang = "en",
+        string? currency = null,
         CancellationToken ct = default)
     {
         var userId = _current.RequireUserId();
@@ -32,13 +35,24 @@ public class ProjectionService : IProjectionService
         var now = DateTime.UtcNow;
         var firstMonth = new DateTime(now.Year, now.Month, 1).AddMonths(-(historyMonths - 1));
 
-        var incomes = await _db.Incomes
-            .Where(i => i.UserId == userId && i.Date >= firstMonth)
+        // The projection is scoped to a single currency (the lens); a null stored currency = base.
+        var baseCurrency = (await _profile.GetAsync(ct)).Currency.ToUpperInvariant();
+        var target = string.IsNullOrWhiteSpace(currency) ? baseCurrency : currency.Trim().ToUpperInvariant();
+        var isBase = target == baseCurrency;
+
+        var incomeQuery = _db.Incomes.Where(i => i.UserId == userId && i.Date >= firstMonth);
+        incomeQuery = isBase
+            ? incomeQuery.Where(i => i.Currency == null || i.Currency == target)
+            : incomeQuery.Where(i => i.Currency == target);
+        var incomes = await incomeQuery
             .Select(i => new { i.Date, i.Amount })
             .ToListAsync(ct);
 
-        var expenses = await _db.Expenses
-            .Where(e => e.UserId == userId && e.Date >= firstMonth)
+        var expenseQuery = _db.Expenses.Where(e => e.UserId == userId && e.Date >= firstMonth);
+        expenseQuery = isBase
+            ? expenseQuery.Where(e => e.Currency == null || e.Currency == target)
+            : expenseQuery.Where(e => e.Currency == target);
+        var expenses = await expenseQuery
             .Select(e => new { e.Date, e.Amount })
             .ToListAsync(ct);
 
@@ -51,8 +65,17 @@ public class ProjectionService : IProjectionService
             history.Add(new MonthPointDto(month.Year, month.Month, inc, exp, inc - exp, false));
         }
 
-        var totalIncome = await _db.Incomes.Where(i => i.UserId == userId).SumAsync(i => (decimal?)i.Amount, ct) ?? 0m;
-        var totalExpense = await _db.Expenses.Where(e => e.UserId == userId).SumAsync(e => (decimal?)e.Amount, ct) ?? 0m;
+        var totalIncomeQuery = _db.Incomes.Where(i => i.UserId == userId);
+        totalIncomeQuery = isBase
+            ? totalIncomeQuery.Where(i => i.Currency == null || i.Currency == target)
+            : totalIncomeQuery.Where(i => i.Currency == target);
+        var totalIncome = await totalIncomeQuery.SumAsync(i => (decimal?)i.Amount, ct) ?? 0m;
+
+        var totalExpenseQuery = _db.Expenses.Where(e => e.UserId == userId);
+        totalExpenseQuery = isBase
+            ? totalExpenseQuery.Where(e => e.Currency == null || e.Currency == target)
+            : totalExpenseQuery.Where(e => e.Currency == target);
+        var totalExpense = await totalExpenseQuery.SumAsync(e => (decimal?)e.Amount, ct) ?? 0m;
         var currentBalance = totalIncome - totalExpense;
 
         var activeMonths = history.Where(h => h.Income > 0 || h.Expense > 0).ToList();

@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Finances.Application.Dtos;
 
-public record IncomeDto(int Id, decimal Amount, string Description, DateTime Date);
+public record IncomeDto(int Id, decimal Amount, string Description, DateTime Date, string Currency);
 
 public class IncomeCreateDto
 {
@@ -13,6 +13,10 @@ public class IncomeCreateDto
     public string Description { get; set; } = string.Empty;
 
     public DateTime? Date { get; set; }
+
+    /// <summary>ISO currency code. Empty/null falls back to the user's base currency.</summary>
+    [MaxLength(3)]
+    public string? Currency { get; set; }
 }
 
 public record ExpenseDto(
@@ -24,7 +28,8 @@ public record ExpenseDto(
     string CategoryName,
     string CategoryIcon,
     string CategoryColor,
-    string? ReceiptUrl);
+    string? ReceiptUrl,
+    string Currency);
 
 public class ExpenseCreateDto
 {
@@ -38,4 +43,8 @@ public class ExpenseCreateDto
 
     [Range(1, int.MaxValue, ErrorMessage = "Debe seleccionar una categoria valida.")]
     public int CategoryId { get; set; }
+
+    /// <summary>ISO currency code. Empty/null falls back to the user's base currency.</summary>
+    [MaxLength(3)]
+    public string? Currency { get; set; }
 }

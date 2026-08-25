@@ -21,7 +21,7 @@ public class UpdateProfileDto
     public string? Country { get; set; }
 
     [MaxLength(8)]
-    public string Currency { get; set; } = "USD";
+    public string Currency { get; set; } = "CAD";
 
     public decimal? MonthlyIncomeTarget { get; set; }
 }

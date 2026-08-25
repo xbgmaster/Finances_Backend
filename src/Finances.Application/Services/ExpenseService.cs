@@ -14,33 +14,48 @@ public class ExpenseService : IExpenseService
     private readonly IFinanceDbContext _db;
     private readonly IFileStorage _storage;
     private readonly ICurrentUser _current;
+    private readonly IProfileService _profile;
 
-    public ExpenseService(IFinanceDbContext db, IFileStorage storage, ICurrentUser current)
+    public ExpenseService(IFinanceDbContext db, IFileStorage storage, ICurrentUser current, IProfileService profile)
     {
         _db = db;
         _storage = storage;
         _current = current;
+        _profile = profile;
     }
 
-    public async Task<IReadOnlyList<ExpenseDto>> GetAllAsync(int? year, int? month, CancellationToken ct = default)
+    public async Task<IReadOnlyList<ExpenseDto>> GetAllAsync(int? year, int? month, string? currency, CancellationToken ct = default)
     {
         var userId = _current.RequireUserId();
+        var baseCurrency = (await _profile.GetAsync(ct)).Currency;
         var query = _db.Expenses.Include(e => e.Category).Where(e => e.UserId == userId);
         if (year is not null) query = query.Where(e => e.Date.Year == year);
         if (month is not null) query = query.Where(e => e.Date.Month == month);
+        if (!string.IsNullOrWhiteSpace(currency))
+        {
+            var cur = currency.Trim().ToUpperInvariant();
+            // A null stored currency means "base currency".
+            query = cur == baseCurrency.ToUpperInvariant()
+                ? query.Where(e => e.Currency == null || e.Currency == cur)
+                : query.Where(e => e.Currency == cur);
+        }
 
         return await query
             .OrderByDescending(e => e.Date)
             .Select(e => new ExpenseDto(
                 e.Id, e.Amount, e.Description, e.Date,
                 e.CategoryId, e.Category!.Name, e.Category.Icon, e.Category.Color,
-                e.ReceiptUrl))
+                e.ReceiptUrl, e.Currency ?? baseCurrency))
             .ToListAsync(ct);
     }
 
     public async Task<ExpenseDto> CreateAsync(ExpenseCreateDto dto, FileUpload? receipt, CancellationToken ct = default)
     {
         var userId = _current.RequireUserId();
+        var baseCurrency = (await _profile.GetAsync(ct)).Currency;
+        var currency = string.IsNullOrWhiteSpace(dto.Currency)
+            ? baseCurrency
+            : dto.Currency.Trim().ToUpperInvariant();
         var category = await _db.Categories.FirstOrDefaultAsync(c => c.Id == dto.CategoryId && c.UserId == userId, ct)
             ?? throw new NotFoundException("La categoria indicada no existe.");
 
@@ -62,6 +77,7 @@ public class ExpenseService : IExpenseService
             Date = dto.Date ?? DateTime.UtcNow,
             CategoryId = dto.CategoryId,
             ReceiptUrl = receiptUrl,
+            Currency = currency,
             UserId = userId
         };
         _db.Expenses.Add(expense);
@@ -70,7 +86,7 @@ public class ExpenseService : IExpenseService
         return new ExpenseDto(
             expense.Id, expense.Amount, expense.Description, expense.Date,
             category.Id, category.Name, category.Icon, category.Color,
-            expense.ReceiptUrl);
+            expense.ReceiptUrl, expense.Currency ?? baseCurrency);
     }
 
     public async Task DeleteAsync(int id, CancellationToken ct = default)

@@ -10,7 +10,7 @@ public class ApplicationUser : IdentityUser
 {
     public string? FullName { get; set; }
     public string? Country { get; set; }
-    public string Currency { get; set; } = "USD";
+    public string Currency { get; set; } = "CAD";
     public decimal? MonthlyIncomeTarget { get; set; }
     public bool OnboardingCompleted { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

@@ -11,6 +11,8 @@ public record UpdatePaymentCommand : IRequest<CreditSummaryDto>
 {
     public int CreditId { get; init; }
     public int PaymentId { get; init; }
+
+    /// <summary>Amount in the credit's own currency (drives the amortization and the mirrored expense).</summary>
     public decimal Amount { get; init; }
     public DateTime Date { get; init; }
     public string? Note { get; init; }

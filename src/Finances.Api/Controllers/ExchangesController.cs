@@ -8,18 +8,18 @@ namespace Finances.Api.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
-public class IncomesController : ControllerBase
+public class ExchangesController : ControllerBase
 {
-    private readonly IIncomeService _service;
+    private readonly IExchangeService _service;
 
-    public IncomesController(IIncomeService service) => _service = service;
+    public ExchangesController(IExchangeService service) => _service = service;
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<IncomeDto>>> GetAll([FromQuery] string? currency, CancellationToken ct) =>
-        Ok(await _service.GetAllAsync(currency, ct));
+    public async Task<ActionResult<IEnumerable<ExchangeDto>>> GetAll(CancellationToken ct) =>
+        Ok(await _service.GetAllAsync(ct));
 
     [HttpPost]
-    public async Task<ActionResult<IncomeDto>> Create(IncomeCreateDto dto, CancellationToken ct) =>
+    public async Task<ActionResult<ExchangeDto>> Create(ExchangeCreateDto dto, CancellationToken ct) =>
         Ok(await _service.CreateAsync(dto, ct));
 
     [HttpDelete("{id:int}")]

@@ -20,11 +20,11 @@ public class BalanceController : ControllerBase
 
     [HttpGet("monthly")]
     public async Task<ActionResult<MonthlySummaryDto>> GetMonthly(
-        [FromQuery] int? year, [FromQuery] int? month, CancellationToken ct) =>
-        Ok(await _service.GetMonthlyAsync(year, month, ct));
+        [FromQuery] int? year, [FromQuery] int? month, [FromQuery] string? currency, CancellationToken ct) =>
+        Ok(await _service.GetMonthlyAsync(year, month, currency, ct));
 
     [HttpGet("budget-history")]
     public async Task<ActionResult<BudgetHistoryDto>> GetBudgetHistory(
-        [FromQuery] int months, CancellationToken ct) =>
-        Ok(await _service.GetBudgetHistoryAsync(months <= 0 ? 6 : months, ct));
+        [FromQuery] int months, [FromQuery] string? currency, CancellationToken ct) =>
+        Ok(await _service.GetBudgetHistoryAsync(months <= 0 ? 6 : months, currency, ct));
 }

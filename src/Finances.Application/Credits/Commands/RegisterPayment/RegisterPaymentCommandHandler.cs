@@ -1,4 +1,5 @@
 using Finances.Application.Common;
+using Finances.Application.Credits;
 using Finances.Application.Dtos;
 using Finances.Application.Services;
 using Finances.Domain.Entities;
@@ -33,6 +34,8 @@ public class RegisterPaymentCommandHandler : IRequestHandler<RegisterPaymentComm
             ? Enum.Parse<PrepaymentEffect>(request.Effect, ignoreCase: true)
             : (PrepaymentEffect?)null;
 
+        var baseCurrency = (await _profile.GetAsync(cancellationToken)).Currency;
+
         var payment = new CreditPayment
         {
             CreditId = credit.Id,
@@ -46,10 +49,11 @@ public class RegisterPaymentCommandHandler : IRequestHandler<RegisterPaymentComm
 
         _db.CreditPayments.Add(payment);
 
-        // Mirror the outflow as a real expense so it reduces the available balance and shows
-        // up in the spending reports, but only when the credit is denominated in the user's
-        // base currency (we do not convert across currencies).
-        await MirrorAsExpenseAsync(credit, payment, userId, cancellationToken);
+        // Mirror the outflow as a real expense so it reduces the corresponding balance and shows
+        // up in the spending reports. The expense currency/amount is whatever the user actually
+        // spent (base currency with an exchange rate, or the credit's own currency directly).
+        var category = await CreditPaymentSync.GetOrCreateDebtCategoryAsync(_db, userId, cancellationToken);
+        _db.Expenses.Add(CreditPaymentSync.BuildMirrorExpense(credit, payment, category, baseCurrency, userId));
 
         await _db.SaveChangesAsync(cancellationToken);
 
@@ -58,53 +62,5 @@ public class RegisterPaymentCommandHandler : IRequestHandler<RegisterPaymentComm
             .ToListAsync(cancellationToken);
 
         return CreditMapper.ToSummary(credit, payments, DateTime.UtcNow);
-    }
-
-    private async Task MirrorAsExpenseAsync(
-        Credit credit, CreditPayment payment, string userId, CancellationToken ct)
-    {
-        var profile = await _profile.GetAsync(ct);
-        var baseCurrency = profile.Currency;
-
-        // No credit currency, or a currency that differs from the base one: skip mirroring.
-        if (string.IsNullOrWhiteSpace(credit.Currency) ||
-            !string.Equals(credit.Currency, baseCurrency, StringComparison.OrdinalIgnoreCase))
-        {
-            return;
-        }
-
-        var category = await GetOrCreateDebtCategoryAsync(userId, ct);
-
-        var expense = new Expense
-        {
-            Amount = payment.Amount,
-            Description = $"{credit.Name} - {(payment.Type == CreditPaymentType.PrincipalPrepayment ? "principal prepayment" : "installment")}",
-            Date = payment.Date,
-            Category = category,
-            CreditPayment = payment,
-            UserId = userId
-        };
-
-        _db.Expenses.Add(expense);
-    }
-
-    private async Task<Category> GetOrCreateDebtCategoryAsync(string userId, CancellationToken ct)
-    {
-        var existing = await _db.Categories
-            .FirstOrDefaultAsync(c => c.UserId == userId && c.IsSystem
-                && c.Name == Category.DebtPaymentsSystemName, ct);
-        if (existing is not null) return existing;
-
-        var category = new Category
-        {
-            Name = Category.DebtPaymentsSystemName,
-            Icon = "bank",
-            Color = "#ef4444",
-            MonthlyBudget = null,
-            IsSystem = true,
-            UserId = userId
-        };
-        _db.Categories.Add(category);
-        return category;
     }
 }

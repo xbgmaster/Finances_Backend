@@ -30,6 +30,7 @@ public static class DependencyInjection
         services.AddScoped<IExpenseService, ExpenseService>();
         services.AddScoped<IBalanceService, BalanceService>();
         services.AddScoped<IProjectionService, ProjectionService>();
+        services.AddScoped<IExchangeService, ExchangeService>();
         return services;
     }
 }

@@ -8,6 +8,12 @@ public class Income
     public string Description { get; set; } = string.Empty;
     public DateTime Date { get; set; } = DateTime.UtcNow;
 
+    /// <summary>
+    /// ISO currency code of this income (e.g. "USD"). Null means the user's base currency.
+    /// Enables holding balances in more than one currency.
+    /// </summary>
+    public string? Currency { get; set; }
+
     /// <summary>Propietario del ingreso (Identity user id).</summary>
     public string UserId { get; set; } = string.Empty;
 }

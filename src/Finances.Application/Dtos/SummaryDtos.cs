@@ -1,6 +1,19 @@
 namespace Finances.Application.Dtos;
 
-public record BalanceDto(decimal TotalIncome, decimal TotalExpense, decimal Balance);
+/// <summary>Income/expense/balance totals for a single currency.</summary>
+public record CurrencyBalanceDto(string Currency, decimal TotalIncome, decimal TotalExpense, decimal Balance);
+
+/// <summary>
+/// Overall balance. The top-level totals are the user's base currency (kept for backward
+/// compatibility with the main "available balance" card); <see cref="ByCurrency"/> breaks the
+/// balance down per currency (base first) so the user can hold money in several currencies.
+/// </summary>
+public record BalanceDto(
+    decimal TotalIncome,
+    decimal TotalExpense,
+    decimal Balance,
+    string BaseCurrency,
+    IReadOnlyList<CurrencyBalanceDto> ByCurrency);
 
 public record CategorySpendDto(
     int CategoryId,

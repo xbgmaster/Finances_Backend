@@ -11,6 +11,7 @@ public class IncomeConfiguration : IEntityTypeConfiguration<Income>
     {
         builder.Property(i => i.Amount).HasPrecision(18, 2);
         builder.Property(i => i.Description).HasMaxLength(200);
+        builder.Property(i => i.Currency).HasMaxLength(3);
 
         builder.Property(i => i.UserId).IsRequired().HasMaxLength(450);
         builder.HasIndex(i => i.UserId);

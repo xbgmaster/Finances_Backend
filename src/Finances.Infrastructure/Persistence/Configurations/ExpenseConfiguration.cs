@@ -12,6 +12,7 @@ public class ExpenseConfiguration : IEntityTypeConfiguration<Expense>
         builder.Property(e => e.Amount).HasPrecision(18, 2);
         builder.Property(e => e.Description).HasMaxLength(200);
         builder.Property(e => e.ReceiptUrl).HasMaxLength(300);
+        builder.Property(e => e.Currency).HasMaxLength(3);
 
         builder.HasOne(e => e.Category)
             .WithMany(c => c.Expenses)

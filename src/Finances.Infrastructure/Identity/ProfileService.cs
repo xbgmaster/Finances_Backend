@@ -30,7 +30,7 @@ public class ProfileService : IProfileService
 
         user.FullName = dto.FullName?.Trim();
         user.Country = dto.Country?.Trim();
-        user.Currency = string.IsNullOrWhiteSpace(dto.Currency) ? "USD" : dto.Currency.Trim();
+        user.Currency = string.IsNullOrWhiteSpace(dto.Currency) ? "CAD" : dto.Currency.Trim();
         user.MonthlyIncomeTarget = dto.MonthlyIncomeTarget;
         user.OnboardingCompleted = true;
 

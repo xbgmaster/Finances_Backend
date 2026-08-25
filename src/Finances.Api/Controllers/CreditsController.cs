@@ -26,8 +26,8 @@ public class CreditsController : ControllerBase
     public CreditsController(IMediator mediator) => _mediator = mediator;
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<CreditDto>>> GetAll(CancellationToken ct) =>
-        Ok(await _mediator.Send(new GetCreditsQuery(), ct));
+    public async Task<ActionResult<IEnumerable<CreditDto>>> GetAll([FromQuery] string? currency, CancellationToken ct) =>
+        Ok(await _mediator.Send(new GetCreditsQuery(currency), ct));
 
     [HttpGet("alerts")]
     public async Task<ActionResult<CreditAlertsDto>> GetAlerts(CancellationToken ct) =>
