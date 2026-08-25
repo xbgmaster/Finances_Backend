@@ -17,3 +17,22 @@ public record MonthlySummaryDto(
     decimal Expense,
     decimal Net,
     IReadOnlyList<CategorySpendDto> ByCategory);
+
+public record BudgetHistoryMonthDto(int Year, int Month);
+
+public record BudgetHistoryCellDto(int Year, int Month, decimal Spent, decimal Percent, bool Over);
+
+public record BudgetHistoryCategoryDto(
+    int CategoryId,
+    string CategoryName,
+    string CategoryIcon,
+    string CategoryColor,
+    decimal MonthlyBudget,
+    decimal TotalSpent,
+    int OverCount,
+    IReadOnlyList<BudgetHistoryCellDto> Cells);
+
+public record BudgetHistoryDto(
+    IReadOnlyList<BudgetHistoryMonthDto> Months,
+    IReadOnlyList<BudgetHistoryCategoryDto> Categories,
+    int TotalOverCount);

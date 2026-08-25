@@ -22,4 +22,9 @@ public class BalanceController : ControllerBase
     public async Task<ActionResult<MonthlySummaryDto>> GetMonthly(
         [FromQuery] int? year, [FromQuery] int? month, CancellationToken ct) =>
         Ok(await _service.GetMonthlyAsync(year, month, ct));
+
+    [HttpGet("budget-history")]
+    public async Task<ActionResult<BudgetHistoryDto>> GetBudgetHistory(
+        [FromQuery] int months, CancellationToken ct) =>
+        Ok(await _service.GetBudgetHistoryAsync(months <= 0 ? 6 : months, ct));
 }

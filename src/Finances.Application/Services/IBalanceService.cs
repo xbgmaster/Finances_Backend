@@ -6,4 +6,5 @@ public interface IBalanceService
 {
     Task<BalanceDto> GetBalanceAsync(CancellationToken ct = default);
     Task<MonthlySummaryDto> GetMonthlyAsync(int? year, int? month, CancellationToken ct = default);
+    Task<BudgetHistoryDto> GetBudgetHistoryAsync(int months, CancellationToken ct = default);
 }
