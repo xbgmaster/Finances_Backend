@@ -93,6 +93,8 @@ public static class CreditMapper
             AnnualInterestRate: credit.AnnualInterestRate,
             TermMonths: credit.TermMonths,
             StartDate: credit.StartDate,
+            PrepaymentPenaltyRate: credit.PrepaymentPenaltyRate,
+            PrepaymentEffect: credit.PrepaymentEffect.ToString(),
             MonthlyInstallment: plan.MonthlyInstallment,
             TotalToPay: plan.TotalToPay,
             TotalPaid: progress.TotalPaid,

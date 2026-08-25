@@ -11,6 +11,8 @@ public record CreditDto(
     decimal AnnualInterestRate,
     int TermMonths,
     DateTime StartDate,
+    decimal PrepaymentPenaltyRate,
+    string PrepaymentEffect,
     decimal MonthlyInstallment,
     decimal TotalToPay,
     decimal TotalPaid,

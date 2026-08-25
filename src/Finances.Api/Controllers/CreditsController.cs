@@ -2,6 +2,7 @@ using Finances.Application.Credits.Commands.CreateCredit;
 using Finances.Application.Credits.Commands.DeleteCredit;
 using Finances.Application.Credits.Commands.DeletePayment;
 using Finances.Application.Credits.Commands.RegisterPayment;
+using Finances.Application.Credits.Commands.UpdateCredit;
 using Finances.Application.Credits.Commands.UpdatePayment;
 using Finances.Application.Credits.Queries.GetAmortizationSchedule;
 using Finances.Application.Credits.Queries.GetCreditAlerts;
@@ -51,6 +52,13 @@ public class CreditsController : ControllerBase
     {
         var created = await _mediator.Send(command, ct);
         return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+    }
+
+    [HttpPut("{id:int}")]
+    public async Task<ActionResult<CreditSummaryDto>> Update(int id, UpdateCreditCommand command, CancellationToken ct)
+    {
+        var updated = await _mediator.Send(command with { Id = id }, ct);
+        return updated is null ? NotFound() : Ok(updated);
     }
 
     [HttpGet("{id:int}/payments")]
