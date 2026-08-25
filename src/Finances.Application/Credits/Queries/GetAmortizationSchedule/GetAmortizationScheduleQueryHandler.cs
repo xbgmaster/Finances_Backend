@@ -24,7 +24,12 @@ public class GetAmortizationScheduleQueryHandler
 
         var credit = await _db.Credits
             .FirstOrDefaultAsync(c => c.Id == request.Id && c.UserId == userId, cancellationToken);
+        if (credit is null) return null;
 
-        return credit is null ? null : CreditMapper.ToSchedule(credit);
+        var payments = await _db.CreditPayments
+            .Where(p => p.CreditId == credit.Id)
+            .ToListAsync(cancellationToken);
+
+        return CreditMapper.ToSchedule(credit, payments);
     }
 }

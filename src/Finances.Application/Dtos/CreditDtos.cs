@@ -26,8 +26,9 @@ public record CreditDto(
     string AlertLevel,
     string Status);
 
-/// <summary>A recorded payment against a credit.</summary>
-public record CreditPaymentDto(int Id, decimal Amount, DateTime Date, string? Note);
+/// <summary>A recorded payment against a credit. <see cref="Type"/> is "Installment" or
+/// "PrincipalPrepayment"; <see cref="Effect"/> is set only for prepayments.</summary>
+public record CreditPaymentDto(int Id, decimal Amount, DateTime Date, string? Note, string Type, string? Effect);
 
 /// <summary>The full "smart summary" of a credit as of today, entirely derived.</summary>
 public record CreditSummaryDto(
@@ -48,6 +49,7 @@ public record CreditSummaryDto(
     decimal TotalPaid,
     decimal PrincipalPaid,
     decimal InterestPaid,
+    decimal PrepaidPrincipal,
     decimal OutstandingPrincipal,
     decimal RemainingTotal,
     decimal SavingsIfPaidOffToday,

@@ -25,11 +25,18 @@ public class RegisterPaymentCommandHandler : IRequestHandler<RegisterPaymentComm
             .FirstOrDefaultAsync(c => c.Id == request.CreditId && c.UserId == userId, cancellationToken)
             ?? throw new NotFoundException("El credito no existe.");
 
+        var type = Enum.Parse<CreditPaymentType>(request.Type, ignoreCase: true);
+        var effect = type == CreditPaymentType.PrincipalPrepayment && !string.IsNullOrWhiteSpace(request.Effect)
+            ? Enum.Parse<PrepaymentEffect>(request.Effect, ignoreCase: true)
+            : (PrepaymentEffect?)null;
+
         var payment = new CreditPayment
         {
             CreditId = credit.Id,
             Amount = request.Amount,
             Date = DateTime.SpecifyKind(request.Date, DateTimeKind.Utc),
+            Type = type,
+            Effect = effect,
             Note = string.IsNullOrWhiteSpace(request.Note) ? null : request.Note.Trim(),
             UserId = userId
         };
@@ -37,10 +44,10 @@ public class RegisterPaymentCommandHandler : IRequestHandler<RegisterPaymentComm
         _db.CreditPayments.Add(payment);
         await _db.SaveChangesAsync(cancellationToken);
 
-        var totalPaid = await _db.CreditPayments
+        var payments = await _db.CreditPayments
             .Where(p => p.CreditId == credit.Id)
-            .SumAsync(p => (decimal?)p.Amount, cancellationToken) ?? 0m;
+            .ToListAsync(cancellationToken);
 
-        return CreditMapper.ToSummary(credit, totalPaid, DateTime.UtcNow);
+        return CreditMapper.ToSummary(credit, payments, DateTime.UtcNow);
     }
 }

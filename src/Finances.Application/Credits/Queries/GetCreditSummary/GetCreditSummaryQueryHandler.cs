@@ -24,10 +24,10 @@ public class GetCreditSummaryQueryHandler : IRequestHandler<GetCreditSummaryQuer
             .FirstOrDefaultAsync(c => c.Id == request.Id && c.UserId == userId, cancellationToken);
         if (credit is null) return null;
 
-        var totalPaid = await _db.CreditPayments
+        var payments = await _db.CreditPayments
             .Where(p => p.CreditId == credit.Id)
-            .SumAsync(p => (decimal?)p.Amount, cancellationToken) ?? 0m;
+            .ToListAsync(cancellationToken);
 
-        return CreditMapper.ToSummary(credit, totalPaid, DateTime.UtcNow);
+        return CreditMapper.ToSummary(credit, payments, DateTime.UtcNow);
     }
 }

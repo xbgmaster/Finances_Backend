@@ -48,3 +48,17 @@ public enum PrepaymentEffect
     /// <summary>Keep the term, lower the future installment (eases monthly cash flow).</summary>
     ReduceInstallment = 1
 }
+
+/// <summary>
+/// What a recorded <see cref="CreditPayment"/> represents. A regular installment pays the
+/// period's interest first and the rest to principal; an extra principal prepayment
+/// ("abono a capital") goes entirely to principal and reshapes the remaining plan.
+/// </summary>
+public enum CreditPaymentType
+{
+    /// <summary>A regular monthly installment (interest first, remainder to principal).</summary>
+    Installment = 0,
+
+    /// <summary>An extra payment applied entirely to principal ("abono a capital").</summary>
+    PrincipalPrepayment = 1
+}

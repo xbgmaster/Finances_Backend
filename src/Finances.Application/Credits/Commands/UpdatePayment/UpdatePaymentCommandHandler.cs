@@ -1,5 +1,6 @@
 using Finances.Application.Common;
 using Finances.Application.Dtos;
+using Finances.Domain.Entities;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -26,8 +27,13 @@ public class UpdatePaymentCommandHandler : IRequestHandler<UpdatePaymentCommand,
                 cancellationToken)
             ?? throw new NotFoundException("El pago no existe.");
 
+        var type = Enum.Parse<CreditPaymentType>(request.Type, ignoreCase: true);
         payment.Amount = request.Amount;
         payment.Date = DateTime.SpecifyKind(request.Date, DateTimeKind.Utc);
+        payment.Type = type;
+        payment.Effect = type == CreditPaymentType.PrincipalPrepayment && !string.IsNullOrWhiteSpace(request.Effect)
+            ? Enum.Parse<PrepaymentEffect>(request.Effect, ignoreCase: true)
+            : null;
         payment.Note = string.IsNullOrWhiteSpace(request.Note) ? null : request.Note.Trim();
         await _db.SaveChangesAsync(cancellationToken);
 
@@ -35,10 +41,10 @@ public class UpdatePaymentCommandHandler : IRequestHandler<UpdatePaymentCommand,
             .FirstOrDefaultAsync(c => c.Id == request.CreditId && c.UserId == userId, cancellationToken)
             ?? throw new NotFoundException("El credito no existe.");
 
-        var totalPaid = await _db.CreditPayments
+        var payments = await _db.CreditPayments
             .Where(p => p.CreditId == credit.Id)
-            .SumAsync(p => (decimal?)p.Amount, cancellationToken) ?? 0m;
+            .ToListAsync(cancellationToken);
 
-        return CreditMapper.ToSummary(credit, totalPaid, DateTime.UtcNow);
+        return CreditMapper.ToSummary(credit, payments, DateTime.UtcNow);
     }
 }

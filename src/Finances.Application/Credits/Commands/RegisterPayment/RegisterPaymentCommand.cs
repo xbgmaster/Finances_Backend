@@ -13,4 +13,10 @@ public record RegisterPaymentCommand : IRequest<CreditSummaryDto>
     public decimal Amount { get; init; }
     public DateTime Date { get; init; }
     public string? Note { get; init; }
+
+    /// <summary>"Installment" (regular) or "PrincipalPrepayment" (abono a capital).</summary>
+    public string Type { get; init; } = "Installment";
+
+    /// <summary>For a prepayment: "ReduceTerm" or "ReduceInstallment". Null uses the credit default.</summary>
+    public string? Effect { get; init; }
 }

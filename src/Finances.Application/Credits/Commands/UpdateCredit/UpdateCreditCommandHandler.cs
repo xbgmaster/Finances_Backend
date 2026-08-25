@@ -43,10 +43,10 @@ public class UpdateCreditCommandHandler : IRequestHandler<UpdateCreditCommand, C
 
         await _db.SaveChangesAsync(cancellationToken);
 
-        var totalPaid = await _db.CreditPayments
+        var payments = await _db.CreditPayments
             .Where(p => p.CreditId == credit.Id)
-            .SumAsync(p => (decimal?)p.Amount, cancellationToken) ?? 0m;
+            .ToListAsync(cancellationToken);
 
-        return CreditMapper.ToSummary(credit, totalPaid, DateTime.UtcNow);
+        return CreditMapper.ToSummary(credit, payments, DateTime.UtcNow);
     }
 }

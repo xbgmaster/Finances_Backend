@@ -75,11 +75,11 @@ public class CreditReminderService : BackgroundService
         var credits = await db.Credits.ToListAsync(ct);
         if (credits.Count == 0) return;
 
-        var paidByCredit = await db.CreditPayments
+        var paymentsByCredit = (await db.CreditPayments.ToListAsync(ct))
             .GroupBy(p => p.CreditId)
-            .Select(g => new { CreditId = g.Key, Total = g.Sum(p => p.Amount) })
-            .ToDictionaryAsync(x => x.CreditId, x => x.Total, ct);
+            .ToDictionary(g => g.Key, g => (IReadOnlyList<Domain.Entities.CreditPayment>)g.ToList());
 
+        var empty = (IReadOnlyList<Domain.Entities.CreditPayment>)Array.Empty<Domain.Entities.CreditPayment>();
         var asOf = DateTime.UtcNow;
 
         // Pair every alerting credit with its entity so we can update the dedupe key.
@@ -87,7 +87,7 @@ public class CreditReminderService : BackgroundService
             .Select(c => new
             {
                 Entity = c,
-                Dto = CreditMapper.ToListItem(c, paidByCredit.GetValueOrDefault(c.Id), asOf),
+                Dto = CreditMapper.ToListItem(c, paymentsByCredit.GetValueOrDefault(c.Id, empty), asOf),
             })
             .Where(x => x.Dto.Status == "Active" && (x.Dto.IsOverdue || x.Dto.IsDueSoon))
             .ToList();

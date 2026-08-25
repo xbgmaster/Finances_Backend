@@ -1,5 +1,6 @@
 using Finances.Application.Common;
 using Finances.Application.Dtos;
+using Finances.Domain.Entities;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -25,15 +26,16 @@ public class GetCreditsQueryHandler : IRequestHandler<GetCreditsQuery, IReadOnly
             .OrderByDescending(c => c.CreatedAt)
             .ToListAsync(cancellationToken);
 
-        var paidByCredit = await _db.CreditPayments
+        var paymentsByCredit = (await _db.CreditPayments
             .Where(p => p.UserId == userId)
+            .ToListAsync(cancellationToken))
             .GroupBy(p => p.CreditId)
-            .Select(g => new { CreditId = g.Key, Total = g.Sum(p => p.Amount) })
-            .ToDictionaryAsync(x => x.CreditId, x => x.Total, cancellationToken);
+            .ToDictionary(g => g.Key, g => (IReadOnlyList<CreditPayment>)g.ToList());
 
+        var empty = (IReadOnlyList<CreditPayment>)Array.Empty<CreditPayment>();
         var asOf = DateTime.UtcNow;
         return credits
-            .Select(c => CreditMapper.ToListItem(c, paidByCredit.GetValueOrDefault(c.Id), asOf))
+            .Select(c => CreditMapper.ToListItem(c, paymentsByCredit.GetValueOrDefault(c.Id, empty), asOf))
             .ToList();
     }
 }

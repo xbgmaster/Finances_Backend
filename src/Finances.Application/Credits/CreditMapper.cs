@@ -14,24 +14,26 @@ public static class CreditMapper
     /// <summary>How many days before the due date we start warning "your installment is due soon".</summary>
     private const int DueSoonThresholdDays = 3;
 
-    public static CreditSummaryDto ToSummary(Credit credit, decimal totalPaid, DateTime asOf)
+    public static CreditSummaryDto ToSummary(Credit credit, IReadOnlyList<CreditPayment> payments, DateTime asOf)
     {
         var plan = AmortizationCalculator.BuildPlan(credit.Principal, credit.AnnualInterestRate, credit.TermMonths, credit.InterestModel);
-        var progress = AmortizationCalculator.ComputeProgress(plan, credit.Principal, totalPaid);
+        var sim = AmortizationCalculator.Simulate(
+            credit.Principal, credit.AnnualInterestRate, credit.TermMonths, credit.InterestModel,
+            credit.StartDate, ToEvents(credit, payments));
 
         var progressPercent = credit.Principal <= 0
             ? 0m
-            : Math.Round(progress.PrincipalPaid / credit.Principal * 100m, 2, MidpointRounding.AwayFromZero);
+            : Math.Round(sim.PrincipalPaid / credit.Principal * 100m, 2, MidpointRounding.AwayFromZero);
 
         // Early payoff: an optional penalty is charged on the amount being prepaid
         // (the outstanding principal). Net savings = interest avoided minus that penalty.
         var penaltyAmount = Math.Round(
-            progress.OutstandingPrincipal * (credit.PrepaymentPenaltyRate / 100m),
+            sim.OutstandingPrincipal * (credit.PrepaymentPenaltyRate / 100m),
             2, MidpointRounding.AwayFromZero);
-        var netSavings = Math.Max(progress.SavingsIfPaidOffToday - penaltyAmount, 0m);
-        var payoffToday = Math.Round(progress.OutstandingPrincipal + penaltyAmount, 2, MidpointRounding.AwayFromZero);
+        var netSavings = Math.Max(sim.SavingsIfPaidOffToday - penaltyAmount, 0m);
+        var payoffToday = Math.Round(sim.OutstandingPrincipal + penaltyAmount, 2, MidpointRounding.AwayFromZero);
 
-        var due = ComputeDueStatus(credit, progress.InstallmentsCovered, progress.IsPaidOff, asOf);
+        var due = ComputeDueStatus(credit, sim.InstallmentsCovered, sim.IsPaidOff, asOf);
 
         return new CreditSummaryDto(
             Id: credit.Id,
@@ -45,22 +47,23 @@ public static class CreditMapper
             EffectiveAnnualRate: plan.EffectiveAnnualRatePercent,
             TermMonths: credit.TermMonths,
             StartDate: credit.StartDate,
-            MonthlyInstallment: plan.MonthlyInstallment,
-            TotalToPay: plan.TotalToPay,
-            TotalInterest: plan.TotalInterest,
-            TotalPaid: progress.TotalPaid,
-            PrincipalPaid: progress.PrincipalPaid,
-            InterestPaid: progress.InterestPaid,
-            OutstandingPrincipal: progress.OutstandingPrincipal,
-            RemainingTotal: progress.RemainingTotal,
-            SavingsIfPaidOffToday: progress.SavingsIfPaidOffToday,
+            MonthlyInstallment: sim.CurrentInstallment,
+            TotalToPay: sim.TotalToPay,
+            TotalInterest: sim.TotalInterest,
+            TotalPaid: sim.TotalPaid,
+            PrincipalPaid: sim.PrincipalPaid,
+            InterestPaid: sim.InterestPaid,
+            PrepaidPrincipal: sim.PrepaidPrincipal,
+            OutstandingPrincipal: sim.OutstandingPrincipal,
+            RemainingTotal: sim.RemainingTotal,
+            SavingsIfPaidOffToday: sim.SavingsIfPaidOffToday,
             PrepaymentPenaltyRate: credit.PrepaymentPenaltyRate,
             PrepaymentPenaltyAmount: penaltyAmount,
             NetSavingsIfPaidOffToday: netSavings,
             PayoffAmountToday: payoffToday,
             PrepaymentEffect: credit.PrepaymentEffect.ToString(),
-            InstallmentsCovered: progress.InstallmentsCovered,
-            InstallmentsRemaining: Math.Max(credit.TermMonths - progress.InstallmentsCovered, 0),
+            InstallmentsCovered: sim.InstallmentsCovered,
+            InstallmentsRemaining: sim.RemainingInstallments,
             ExpectedInstallmentsToDate: ExpectedInstallmentsToDate(credit, asOf),
             ProgressPercent: progressPercent,
             PaymentDueDay: credit.PaymentDueDay,
@@ -69,19 +72,20 @@ public static class CreditMapper
             IsOverdue: due.IsOverdue,
             IsDueSoon: due.IsDueSoon,
             AlertLevel: due.AlertLevel,
-            Status: progress.IsPaidOff ? "PaidOff" : "Active");
+            Status: sim.IsPaidOff ? "PaidOff" : "Active");
     }
 
-    public static CreditDto ToListItem(Credit credit, decimal totalPaid, DateTime asOf)
+    public static CreditDto ToListItem(Credit credit, IReadOnlyList<CreditPayment> payments, DateTime asOf)
     {
-        var plan = AmortizationCalculator.BuildPlan(credit.Principal, credit.AnnualInterestRate, credit.TermMonths, credit.InterestModel);
-        var progress = AmortizationCalculator.ComputeProgress(plan, credit.Principal, totalPaid);
+        var sim = AmortizationCalculator.Simulate(
+            credit.Principal, credit.AnnualInterestRate, credit.TermMonths, credit.InterestModel,
+            credit.StartDate, ToEvents(credit, payments));
 
         var progressPercent = credit.Principal <= 0
             ? 0m
-            : Math.Round(progress.PrincipalPaid / credit.Principal * 100m, 2, MidpointRounding.AwayFromZero);
+            : Math.Round(sim.PrincipalPaid / credit.Principal * 100m, 2, MidpointRounding.AwayFromZero);
 
-        var due = ComputeDueStatus(credit, progress.InstallmentsCovered, progress.IsPaidOff, asOf);
+        var due = ComputeDueStatus(credit, sim.InstallmentsCovered, sim.IsPaidOff, asOf);
 
         return new CreditDto(
             Id: credit.Id,
@@ -95,10 +99,10 @@ public static class CreditMapper
             StartDate: credit.StartDate,
             PrepaymentPenaltyRate: credit.PrepaymentPenaltyRate,
             PrepaymentEffect: credit.PrepaymentEffect.ToString(),
-            MonthlyInstallment: plan.MonthlyInstallment,
-            TotalToPay: plan.TotalToPay,
-            TotalPaid: progress.TotalPaid,
-            OutstandingPrincipal: progress.OutstandingPrincipal,
+            MonthlyInstallment: sim.CurrentInstallment,
+            TotalToPay: sim.TotalToPay,
+            TotalPaid: sim.TotalPaid,
+            OutstandingPrincipal: sim.OutstandingPrincipal,
             ProgressPercent: progressPercent,
             PaymentDueDay: credit.PaymentDueDay,
             NextDueDate: due.NextDueDate,
@@ -106,16 +110,19 @@ public static class CreditMapper
             IsOverdue: due.IsOverdue,
             IsDueSoon: due.IsDueSoon,
             AlertLevel: due.AlertLevel,
-            Status: progress.IsPaidOff ? "PaidOff" : "Active");
+            Status: sim.IsPaidOff ? "PaidOff" : "Active");
     }
 
-    public static CreditScheduleDto ToSchedule(Credit credit)
+    public static CreditScheduleDto ToSchedule(Credit credit, IReadOnlyList<CreditPayment> payments)
     {
-        var plan = AmortizationCalculator.BuildPlan(credit.Principal, credit.AnnualInterestRate, credit.TermMonths, credit.InterestModel);
-        var rows = plan.Schedule
+        var sim = AmortizationCalculator.Simulate(
+            credit.Principal, credit.AnnualInterestRate, credit.TermMonths, credit.InterestModel,
+            credit.StartDate, ToEvents(credit, payments));
+
+        var rows = sim.Schedule
             .Select(r => new AmortizationRowDto(
                 r.Number,
-                credit.StartDate.AddMonths(r.Number),
+                DueDateForInstallment(credit, r.Number),
                 r.Installment,
                 r.Interest,
                 r.Principal,
@@ -123,6 +130,19 @@ public static class CreditMapper
             .ToList();
         return new CreditScheduleDto(credit.Id, rows);
     }
+
+    /// <summary>
+    /// Projects credit payments onto the calculator's <see cref="PaymentEvent"/> input. An
+    /// abono a capital without an explicit effect falls back to the credit's default effect.
+    /// </summary>
+    private static IReadOnlyList<PaymentEvent> ToEvents(Credit credit, IReadOnlyList<CreditPayment> payments) =>
+        payments
+            .Select(p => new PaymentEvent(
+                p.Date,
+                p.Amount,
+                p.Type == CreditPaymentType.PrincipalPrepayment,
+                p.Effect ?? credit.PrepaymentEffect))
+            .ToList();
 
     private static int ExpectedInstallmentsToDate(Credit credit, DateTime asOf)
     {

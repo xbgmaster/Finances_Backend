@@ -9,6 +9,8 @@ public class CreditPaymentConfiguration : IEntityTypeConfiguration<CreditPayment
     public void Configure(EntityTypeBuilder<CreditPayment> builder)
     {
         builder.Property(p => p.Amount).HasPrecision(18, 2);
+        builder.Property(p => p.Type).HasConversion<string>().HasMaxLength(30).HasDefaultValue(CreditPaymentType.Installment);
+        builder.Property(p => p.Effect).HasConversion<string>().HasMaxLength(30);
         builder.Property(p => p.Note).HasMaxLength(300);
 
         builder.Property(p => p.UserId).IsRequired().HasMaxLength(450);

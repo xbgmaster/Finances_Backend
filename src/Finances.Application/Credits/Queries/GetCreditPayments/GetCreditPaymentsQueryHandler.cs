@@ -25,7 +25,10 @@ public class GetCreditPaymentsQueryHandler
             .Where(p => p.CreditId == request.CreditId && p.UserId == userId)
             .OrderByDescending(p => p.Date)
             .ThenByDescending(p => p.Id)
-            .Select(p => new CreditPaymentDto(p.Id, p.Amount, p.Date, p.Note))
+            .Select(p => new CreditPaymentDto(
+                p.Id, p.Amount, p.Date, p.Note,
+                p.Type.ToString(),
+                p.Effect != null ? p.Effect.ToString() : null))
             .ToListAsync(cancellationToken);
     }
 }

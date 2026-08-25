@@ -1,5 +1,6 @@
 using Finances.Application.Common;
 using Finances.Application.Dtos;
+using Finances.Domain.Entities;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -24,17 +25,18 @@ public class GetCreditAlertsQueryHandler : IRequestHandler<GetCreditAlertsQuery,
             .Where(c => c.UserId == userId)
             .ToListAsync(cancellationToken);
 
-        var paidByCredit = await _db.CreditPayments
+        var paymentsByCredit = (await _db.CreditPayments
             .Where(p => p.UserId == userId)
+            .ToListAsync(cancellationToken))
             .GroupBy(p => p.CreditId)
-            .Select(g => new { CreditId = g.Key, Total = g.Sum(p => p.Amount) })
-            .ToDictionaryAsync(x => x.CreditId, x => x.Total, cancellationToken);
+            .ToDictionary(g => g.Key, g => (IReadOnlyList<CreditPayment>)g.ToList());
 
+        var empty = (IReadOnlyList<CreditPayment>)Array.Empty<CreditPayment>();
         var asOf = DateTime.UtcNow;
 
         // Reuse the exact same alert derivation the rest of the app uses.
         var alerting = credits
-            .Select(c => CreditMapper.ToListItem(c, paidByCredit.GetValueOrDefault(c.Id), asOf))
+            .Select(c => CreditMapper.ToListItem(c, paymentsByCredit.GetValueOrDefault(c.Id, empty), asOf))
             .Where(c => c.Status == "Active" && (c.IsOverdue || c.IsDueSoon))
             // Overdue first, then whatever is closest to its due date.
             .OrderByDescending(c => c.IsOverdue)

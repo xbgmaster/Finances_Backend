@@ -40,7 +40,7 @@ public class CreateCreditCommandHandler : IRequestHandler<CreateCreditCommand, C
         _db.Credits.Add(credit);
         await _db.SaveChangesAsync(cancellationToken);
 
-        // A brand new credit has no payments yet, so total paid is zero.
-        return CreditMapper.ToListItem(credit, totalPaid: 0m, DateTime.UtcNow);
+        // A brand new credit has no payments yet.
+        return CreditMapper.ToListItem(credit, Array.Empty<CreditPayment>(), DateTime.UtcNow);
     }
 }
