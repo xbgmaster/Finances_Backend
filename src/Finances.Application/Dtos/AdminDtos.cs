@@ -9,6 +9,7 @@ public record AdminUserDto(
     string Currency,
     bool OnboardingCompleted,
     DateTime CreatedAt,
+    DateTime? LastLoginAt,
     decimal TotalIncome,
     decimal TotalExpense,
     decimal Balance,

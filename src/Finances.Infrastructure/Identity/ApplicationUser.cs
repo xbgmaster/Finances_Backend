@@ -14,4 +14,7 @@ public class ApplicationUser : IdentityUser
     public decimal? MonthlyIncomeTarget { get; set; }
     public bool OnboardingCompleted { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    /// <summary>Last time the user signed in. Null if they have never logged in.</summary>
+    public DateTime? LastLoginAt { get; set; }
 }

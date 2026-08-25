@@ -48,7 +48,8 @@ public class AuthService : IAuthService
             UserName = dto.Email,
             Email = dto.Email,
             FullName = dto.FullName,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            LastLoginAt = DateTime.UtcNow
         };
 
         var result = await _users.CreateAsync(user, dto.Password);
@@ -69,6 +70,9 @@ public class AuthService : IAuthService
         var user = await _users.FindByEmailAsync(dto.Email);
         if (user is null || !await _users.CheckPasswordAsync(user, dto.Password))
             throw new ValidationException("Incorrect email or password.");
+
+        user.LastLoginAt = DateTime.UtcNow;
+        await _users.UpdateAsync(user);
 
         return await BuildResultAsync(user);
     }

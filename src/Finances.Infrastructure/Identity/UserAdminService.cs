@@ -57,10 +57,9 @@ public class UserAdminService : IUserAdminService
         var totalUsers = await _users.Users.CountAsync(ct);
         var newUsersThisMonth = await _users.Users.CountAsync(u => u.CreatedAt >= monthStart, ct);
 
-        var activeUsers = await _db.Incomes.Select(i => i.UserId)
-            .Union(_db.Expenses.Select(e => e.UserId))
-            .Distinct()
-            .CountAsync(ct);
+        // "Active" = signed in within the last 30 days.
+        var activeSince = now.AddDays(-30);
+        var activeUsers = await _users.Users.CountAsync(u => u.LastLoginAt != null && u.LastLoginAt >= activeSince, ct);
 
         var totalIncome = await _db.Incomes.SumAsync(i => (decimal?)i.Amount, ct) ?? 0m;
         var totalExpense = await _db.Expenses.SumAsync(e => (decimal?)e.Amount, ct) ?? 0m;
@@ -102,13 +101,14 @@ public class UserAdminService : IUserAdminService
         var (income, expense, expenseCount) = await AggregatesAsync(ct);
 
         var sb = new StringBuilder();
-        sb.AppendLine("Id,Email,FullName,Role,Country,Currency,OnboardingCompleted,CreatedAt,TotalIncome,TotalExpense,Balance,ExpenseCount");
+        sb.AppendLine("Id,Email,FullName,Role,Country,Currency,OnboardingCompleted,CreatedAt,LastLoginAt,TotalIncome,TotalExpense,Balance,ExpenseCount");
         foreach (var u in users)
         {
             var d = Map(u, adminIds, income, expense, expenseCount);
             sb.AppendLine(string.Join(",",
                 Csv(d.Id), Csv(d.Email), Csv(d.FullName), Csv(d.Role), Csv(d.Country), Csv(d.Currency),
                 d.OnboardingCompleted, d.CreatedAt.ToString("o", CultureInfo.InvariantCulture),
+                d.LastLoginAt?.ToString("o", CultureInfo.InvariantCulture) ?? string.Empty,
                 d.TotalIncome.ToString(CultureInfo.InvariantCulture),
                 d.TotalExpense.ToString(CultureInfo.InvariantCulture),
                 d.Balance.ToString(CultureInfo.InvariantCulture),
@@ -174,7 +174,7 @@ public class UserAdminService : IUserAdminService
         var role = adminIds.Contains(u.Id) ? AuthService.AdminRole : AuthService.UserRole;
         return new AdminUserDto(
             u.Id, u.Email ?? string.Empty, u.FullName, role, u.Country, u.Currency,
-            u.OnboardingCompleted, u.CreatedAt, inc, exp, inc - exp, count.GetValueOrDefault(u.Id));
+            u.OnboardingCompleted, u.CreatedAt, u.LastLoginAt, inc, exp, inc - exp, count.GetValueOrDefault(u.Id));
     }
 
     private static string Csv(string? value)
