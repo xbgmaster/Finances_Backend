@@ -29,7 +29,9 @@ public record ExpenseDto(
     string CategoryIcon,
     string CategoryColor,
     string? ReceiptUrl,
-    string Currency);
+    string Currency,
+    // When set, this expense mirrors a credit payment and must be managed from that credit.
+    int? CreditId = null);
 
 public class ExpenseCreateDto
 {

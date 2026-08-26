@@ -45,7 +45,8 @@ public class ExpenseService : IExpenseService
             .Select(e => new ExpenseDto(
                 e.Id, e.Amount, e.Description, e.Date,
                 e.CategoryId, e.Category!.Name, e.Category.Icon, e.Category.Color,
-                e.ReceiptUrl, e.Currency ?? baseCurrency))
+                e.ReceiptUrl, e.Currency ?? baseCurrency,
+                e.CreditPayment != null ? e.CreditPayment.CreditId : (int?)null))
             .ToListAsync(ct);
     }
 
