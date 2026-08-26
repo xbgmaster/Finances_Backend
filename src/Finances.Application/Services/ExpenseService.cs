@@ -89,6 +89,55 @@ public class ExpenseService : IExpenseService
             expense.ReceiptUrl, expense.Currency ?? baseCurrency);
     }
 
+    public async Task<ExpenseDto> UpdateAsync(int id, ExpenseUpdateDto dto, FileUpload? receipt, CancellationToken ct = default)
+    {
+        var userId = _current.RequireUserId();
+        var baseCurrency = (await _profile.GetAsync(ct)).Currency;
+
+        var expense = await _db.Expenses.FirstOrDefaultAsync(e => e.Id == id && e.UserId == userId, ct)
+            ?? throw new NotFoundException("El gasto no existe.");
+
+        // Credit-payment mirrors are managed from the Credits section to keep them in sync.
+        if (expense.CreditPaymentId is not null)
+            throw new ConflictException("Este gasto proviene de un pago de credito. Modificalo desde la seccion de Creditos.");
+
+        var category = await _db.Categories.FirstOrDefaultAsync(c => c.Id == dto.CategoryId && c.UserId == userId, ct)
+            ?? throw new NotFoundException("La categoria indicada no existe.");
+
+        // Receipt: a new upload replaces the old file; otherwise honor an explicit removal.
+        if (receipt is { Length: > 0 })
+        {
+            if (receipt.Length > MaxReceiptBytes)
+                throw new ValidationException("La imagen supera el tamano maximo de 5 MB.");
+            if (!AllowedImageTypes.Contains(receipt.ContentType))
+                throw new ValidationException("Formato de imagen no permitido (usa JPG, PNG, WEBP o GIF).");
+
+            if (!string.IsNullOrEmpty(expense.ReceiptUrl))
+                _storage.Delete(expense.ReceiptUrl);
+            expense.ReceiptUrl = await _storage.SaveAsync(receipt, "uploads", ct);
+        }
+        else if (dto.RemoveReceipt && !string.IsNullOrEmpty(expense.ReceiptUrl))
+        {
+            _storage.Delete(expense.ReceiptUrl);
+            expense.ReceiptUrl = null;
+        }
+
+        expense.Amount = dto.Amount;
+        expense.Description = dto.Description?.Trim() ?? string.Empty;
+        expense.Date = dto.Date ?? expense.Date;
+        expense.CategoryId = dto.CategoryId;
+        expense.Currency = string.IsNullOrWhiteSpace(dto.Currency)
+            ? baseCurrency
+            : dto.Currency.Trim().ToUpperInvariant();
+
+        await _db.SaveChangesAsync(ct);
+
+        return new ExpenseDto(
+            expense.Id, expense.Amount, expense.Description, expense.Date,
+            category.Id, category.Name, category.Icon, category.Color,
+            expense.ReceiptUrl, expense.Currency ?? baseCurrency);
+    }
+
     public async Task DeleteAsync(int id, CancellationToken ct = default)
     {
         var userId = _current.RequireUserId();

@@ -37,7 +37,7 @@ public class ExpenseCreateDto
     public decimal Amount { get; set; }
 
     [MaxLength(200)]
-    public string Description { get; set; } = string.Empty;
+    public string? Description { get; set; }
 
     public DateTime? Date { get; set; }
 
@@ -47,4 +47,26 @@ public class ExpenseCreateDto
     /// <summary>ISO currency code. Empty/null falls back to the user's base currency.</summary>
     [MaxLength(3)]
     public string? Currency { get; set; }
+}
+
+public class ExpenseUpdateDto
+{
+    [Range(0.01, double.MaxValue, ErrorMessage = "El monto debe ser mayor que cero.")]
+    public decimal Amount { get; set; }
+
+    // Nullable so an empty description is valid (no implicit "required" from non-nullable strings).
+    [MaxLength(200)]
+    public string? Description { get; set; }
+
+    public DateTime? Date { get; set; }
+
+    [Range(1, int.MaxValue, ErrorMessage = "Debe seleccionar una categoria valida.")]
+    public int CategoryId { get; set; }
+
+    /// <summary>ISO currency code. Empty/null falls back to the user's base currency.</summary>
+    [MaxLength(3)]
+    public string? Currency { get; set; }
+
+    /// <summary>Remove the existing receipt image (ignored when a new receipt file is uploaded).</summary>
+    public bool RemoveReceipt { get; set; }
 }

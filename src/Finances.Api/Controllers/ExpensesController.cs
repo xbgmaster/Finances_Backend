@@ -37,6 +37,23 @@ public class ExpensesController : ControllerBase
         return Ok(created);
     }
 
+    /// <summary>
+    /// Actualiza un gasto. Acepta multipart/form-data para reemplazar la imagen
+    /// del recibo ("receipt") o quitarla con el campo "removeReceipt".
+    /// </summary>
+    [HttpPut("{id:int}")]
+    [RequestSizeLimit(10 * 1024 * 1024)]
+    public async Task<ActionResult<ExpenseDto>> Update(
+        int id, [FromForm] ExpenseUpdateDto dto, IFormFile? receipt, CancellationToken ct)
+    {
+        FileUpload? upload = null;
+        if (receipt is { Length: > 0 })
+            upload = new FileUpload(receipt.OpenReadStream(), receipt.FileName, receipt.ContentType, receipt.Length);
+
+        var updated = await _service.UpdateAsync(id, dto, upload, ct);
+        return Ok(updated);
+    }
+
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id, CancellationToken ct)
     {
