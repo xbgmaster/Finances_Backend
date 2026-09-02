@@ -37,10 +37,30 @@ public class PaymentMethodsController : ControllerBase
     public async Task<ActionResult<PaymentMethodDto>> Update(int id, PaymentMethodCreateDto dto, CancellationToken ct) =>
         Ok(await _service.UpdateAsync(id, dto, ct));
 
+    [HttpPut("{id:int}/favorite")]
+    public async Task<ActionResult<PaymentMethodDto>> SetFavorite(
+        int id, [FromQuery] bool value, CancellationToken ct) =>
+        Ok(await _service.SetFavoriteAsync(id, value, ct));
+
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id, CancellationToken ct)
     {
         await _service.DeleteAsync(id, ct);
+        return NoContent();
+    }
+
+    [HttpGet("{id:int}/payments")]
+    public async Task<ActionResult<IEnumerable<CardPaymentDto>>> GetPayments(int id, CancellationToken ct) =>
+        Ok(await _service.GetCardPaymentsAsync(id, ct));
+
+    [HttpPost("{id:int}/payments")]
+    public async Task<ActionResult<CardPaymentDto>> PayCard(int id, CardPaymentCreateDto dto, CancellationToken ct) =>
+        Ok(await _service.PayCardAsync(id, dto, ct));
+
+    [HttpDelete("{id:int}/payments/{paymentId:int}")]
+    public async Task<IActionResult> DeletePayment(int id, int paymentId, CancellationToken ct)
+    {
+        await _service.DeleteCardPaymentAsync(paymentId, ct);
         return NoContent();
     }
 }

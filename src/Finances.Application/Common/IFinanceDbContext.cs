@@ -16,6 +16,7 @@ public interface IFinanceDbContext
     DbSet<CreditPayment> CreditPayments { get; }
     DbSet<CurrencyExchange> CurrencyExchanges { get; }
     DbSet<PaymentMethod> PaymentMethods { get; }
+    DbSet<CardPayment> CardPayments { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

@@ -4,7 +4,7 @@ namespace Finances.Application.Dtos;
 
 public record IncomeDto(
     int Id, decimal Amount, string Description, DateTime Date, string Currency,
-    int? PaymentMethodId = null, string? PaymentMethodName = null);
+    int? PaymentMethodId = null, string? PaymentMethodName = null, string? PaymentMethodType = null);
 
 public class IncomeCreateDto
 {
@@ -13,6 +13,24 @@ public class IncomeCreateDto
 
     [MaxLength(200)]
     public string Description { get; set; } = string.Empty;
+
+    public DateTime? Date { get; set; }
+
+    /// <summary>ISO currency code. Empty/null falls back to the user's base currency.</summary>
+    [MaxLength(3)]
+    public string? Currency { get; set; }
+
+    /// <summary>Account / payment method the income landed in (optional).</summary>
+    public int? PaymentMethodId { get; set; }
+}
+
+public class IncomeUpdateDto
+{
+    [Range(0.01, double.MaxValue, ErrorMessage = "El monto debe ser mayor que cero.")]
+    public decimal Amount { get; set; }
+
+    [MaxLength(200)]
+    public string? Description { get; set; }
 
     public DateTime? Date { get; set; }
 
@@ -39,7 +57,8 @@ public record ExpenseDto(
     int? CreditId = null,
     // Payment method / card used (optional), for per-card tracking.
     int? PaymentMethodId = null,
-    string? PaymentMethodName = null);
+    string? PaymentMethodName = null,
+    string? PaymentMethodType = null);
 
 public class ExpenseCreateDto
 {

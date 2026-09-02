@@ -35,7 +35,8 @@ public class IncomeService : IIncomeService
             .Select(i => new IncomeDto(
                 i.Id, i.Amount, i.Description, i.Date, i.Currency ?? baseCurrency,
                 i.PaymentMethodId,
-                i.PaymentMethod != null ? i.PaymentMethod.Name : null))
+                i.PaymentMethod != null ? i.PaymentMethod.Name : null,
+                i.PaymentMethod != null ? i.PaymentMethod.Type.ToString() : null))
             .ToListAsync(ct);
     }
 
@@ -68,7 +69,38 @@ public class IncomeService : IIncomeService
         await _db.SaveChangesAsync(ct);
         return new IncomeDto(
             income.Id, income.Amount, income.Description, income.Date, income.Currency ?? baseCurrency,
-            paymentMethod?.Id, paymentMethod?.Name);
+            paymentMethod?.Id, paymentMethod?.Name, paymentMethod?.Type.ToString());
+    }
+
+    public async Task<IncomeDto> UpdateAsync(int id, IncomeUpdateDto dto, CancellationToken ct = default)
+    {
+        var userId = _current.RequireUserId();
+        var baseCurrency = (await _profile.GetAsync(ct)).Currency;
+        var income = await _db.Incomes.FirstOrDefaultAsync(i => i.Id == id && i.UserId == userId, ct)
+            ?? throw new NotFoundException("El ingreso no existe.");
+
+        var currency = string.IsNullOrWhiteSpace(dto.Currency)
+            ? baseCurrency
+            : dto.Currency.Trim().ToUpperInvariant();
+
+        PaymentMethod? paymentMethod = null;
+        if (dto.PaymentMethodId is not null)
+        {
+            paymentMethod = await _db.PaymentMethods
+                .FirstOrDefaultAsync(p => p.Id == dto.PaymentMethodId && p.UserId == userId, ct)
+                ?? throw new NotFoundException("El medio de pago indicado no existe.");
+        }
+
+        income.Amount = dto.Amount;
+        income.Description = dto.Description?.Trim() ?? string.Empty;
+        income.Date = dto.Date ?? income.Date;
+        income.Currency = currency;
+        income.PaymentMethodId = paymentMethod?.Id;
+        await _db.SaveChangesAsync(ct);
+
+        return new IncomeDto(
+            income.Id, income.Amount, income.Description, income.Date, income.Currency ?? baseCurrency,
+            paymentMethod?.Id, paymentMethod?.Name, paymentMethod?.Type.ToString());
     }
 
     public async Task DeleteAsync(int id, CancellationToken ct = default)

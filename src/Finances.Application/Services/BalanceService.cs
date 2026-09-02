@@ -1,5 +1,6 @@
 using Finances.Application.Common;
 using Finances.Application.Dtos;
+using Finances.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace Finances.Application.Services;
@@ -22,17 +23,32 @@ public class BalanceService : IBalanceService
         var userId = _current.RequireUserId();
         var baseCurrency = (await _profile.GetAsync(ct)).Currency;
 
+        // Credit cards are treated as debt, not cash: their charges do NOT reduce the available
+        // balance (you owe the card, you haven't spent cash yet). Cash only moves when the card
+        // is paid (a card payment funded from a cash/debit account).
+        var creditCardIds = await _db.PaymentMethods
+            .Where(p => p.UserId == userId && p.Type == PaymentMethodType.CreditCard)
+            .Select(p => p.Id)
+            .ToListAsync(ct);
+
         var incomes = await _db.Incomes
-            .Where(i => i.UserId == userId)
+            .Where(i => i.UserId == userId
+                && (i.PaymentMethodId == null || !creditCardIds.Contains(i.PaymentMethodId.Value)))
             .Select(i => new { i.Amount, i.Currency })
             .ToListAsync(ct);
         var expenses = await _db.Expenses
-            .Where(e => e.UserId == userId)
+            .Where(e => e.UserId == userId
+                && (e.PaymentMethodId == null || !creditCardIds.Contains(e.PaymentMethodId.Value)))
             .Select(e => new { e.Amount, e.Currency })
             .ToListAsync(ct);
         var exchanges = await _db.CurrencyExchanges
             .Where(x => x.UserId == userId)
             .Select(x => new { x.FromCurrency, x.FromAmount, x.ToCurrency, x.ToAmount })
+            .ToListAsync(ct);
+        // Card payments funded from a cash/debit account leave your cash: count them as outflows.
+        var cardPayments = await _db.CardPayments
+            .Where(p => p.UserId == userId && p.SourcePaymentMethodId != null)
+            .Select(p => new { p.Amount, p.Currency })
             .ToListAsync(ct);
 
         // Group totals per currency (null currency = base currency). Exchanges move money between
@@ -51,6 +67,12 @@ public class BalanceService : IBalanceService
             var cur = string.IsNullOrWhiteSpace(e.Currency) ? baseCurrency : e.Currency!;
             var acc = perCurrency.GetValueOrDefault(cur);
             perCurrency[cur] = (acc.Income, acc.Expense + e.Amount, acc.ExchangeNet);
+        }
+        foreach (var p in cardPayments)
+        {
+            var cur = string.IsNullOrWhiteSpace(p.Currency) ? baseCurrency : p.Currency!;
+            var acc = perCurrency.GetValueOrDefault(cur);
+            perCurrency[cur] = (acc.Income, acc.Expense + p.Amount, acc.ExchangeNet);
         }
         foreach (var x in exchanges)
         {

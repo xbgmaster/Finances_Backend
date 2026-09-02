@@ -28,6 +28,32 @@ public record PaymentMethodDto(
     // For credit cards: CreditLimit - Balance. Null for debit/cash.
     decimal? AvailableCredit);
 
+/// <summary>A payment applied to a credit card, reducing its debt (and freeing cupo).</summary>
+public record CardPaymentDto(
+    int Id,
+    int CreditCardId,
+    string CreditCardName,
+    int? SourcePaymentMethodId,
+    string? SourcePaymentMethodName,
+    decimal Amount,
+    string Currency,
+    DateTime Date,
+    string? Note);
+
+public class CardPaymentCreateDto
+{
+    [Range(0.01, double.MaxValue, ErrorMessage = "El monto debe ser mayor que cero.")]
+    public decimal Amount { get; set; }
+
+    /// <summary>Cash/debit account the money comes from. Null = external payment (cash not affected).</summary>
+    public int? SourcePaymentMethodId { get; set; }
+
+    public DateTime? Date { get; set; }
+
+    [MaxLength(300)]
+    public string? Note { get; set; }
+}
+
 public class PaymentMethodCreateDto
 {
     [Required, MaxLength(80)]

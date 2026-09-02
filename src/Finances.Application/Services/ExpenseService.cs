@@ -49,7 +49,8 @@ public class ExpenseService : IExpenseService
                 e.ReceiptUrl, e.Currency ?? baseCurrency,
                 e.CreditPayment != null ? e.CreditPayment.CreditId : (int?)null,
                 e.PaymentMethodId,
-                e.PaymentMethod != null ? e.PaymentMethod.Name : null))
+                e.PaymentMethod != null ? e.PaymentMethod.Name : null,
+                e.PaymentMethod != null ? e.PaymentMethod.Type.ToString() : null))
             .ToListAsync(ct);
     }
 

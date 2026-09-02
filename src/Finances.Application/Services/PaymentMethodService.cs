@@ -57,13 +57,33 @@ public class PaymentMethodService : IPaymentMethodService
             })
             .ToListAsync(ct);
 
+        // Payments applied TO each credit card (reduce its debt / free cupo).
+        var paidToCardAgg = await _db.CardPayments
+            .Where(p => p.UserId == userId && ids.Contains(p.CreditCardId))
+            .GroupBy(p => p.CreditCardId)
+            .Select(g => new { Id = g.Key, Total = g.Sum(x => x.Amount) })
+            .ToListAsync(ct);
+
+        // Payments funded FROM each cash/debit account (reduce its available balance).
+        var fundedAgg = await _db.CardPayments
+            .Where(p => p.UserId == userId && p.SourcePaymentMethodId != null
+                && ids.Contains(p.SourcePaymentMethodId.Value))
+            .GroupBy(p => p.SourcePaymentMethodId!.Value)
+            .Select(g => new { Id = g.Key, Total = g.Sum(x => x.Amount) })
+            .ToListAsync(ct);
+
         var expenseById = expenseAgg.ToDictionary(a => a.Id);
         var incomeById = incomeAgg.ToDictionary(a => a.Id);
+        var paidToCardById = paidToCardAgg.ToDictionary(a => a.Id, a => a.Total);
+        var fundedById = fundedAgg.ToDictionary(a => a.Id, a => a.Total);
         return methods.Select(m =>
         {
             expenseById.TryGetValue(m.Id, out var exp);
             incomeById.TryGetValue(m.Id, out var inc);
-            return Map(m, baseCurrency, exp?.Month ?? 0m, exp?.Total ?? 0m, inc?.Month ?? 0m, inc?.Total ?? 0m);
+            paidToCardById.TryGetValue(m.Id, out var paidToCard);
+            fundedById.TryGetValue(m.Id, out var funded);
+            return Map(m, baseCurrency, exp?.Month ?? 0m, exp?.Total ?? 0m,
+                inc?.Month ?? 0m, inc?.Total ?? 0m, paidToCard, funded);
         }).ToList();
     }
 
@@ -76,8 +96,8 @@ public class PaymentMethodService : IPaymentMethodService
         var method = await _db.PaymentMethods.FirstOrDefaultAsync(p => p.Id == id && p.UserId == userId, ct);
         if (method is null) return null;
 
-        var (expMonth, expTotal, incMonth, incTotal) = await AggregateAsync(id, userId, now, ct);
-        return Map(method, baseCurrency, expMonth, expTotal, incMonth, incTotal);
+        var (expMonth, expTotal, incMonth, incTotal, paidToCard, funded) = await AggregateAsync(id, userId, now, ct);
+        return Map(method, baseCurrency, expMonth, expTotal, incMonth, incTotal, paidToCard, funded);
     }
 
     public async Task<PaymentMethodDto> CreateAsync(PaymentMethodCreateDto dto, CancellationToken ct = default)
@@ -102,7 +122,7 @@ public class PaymentMethodService : IPaymentMethodService
         _db.PaymentMethods.Add(method);
         if (dto.IsFavorite) await ClearOtherFavoritesAsync(userId, method, ct);
         await _db.SaveChangesAsync(ct);
-        return Map(method, baseCurrency, 0m, 0m, 0m, 0m);
+        return Map(method, baseCurrency, 0m, 0m, 0m, 0m, 0m, 0m);
     }
 
     public async Task<PaymentMethodDto> UpdateAsync(int id, PaymentMethodCreateDto dto, CancellationToken ct = default)
@@ -126,8 +146,23 @@ public class PaymentMethodService : IPaymentMethodService
         if (dto.IsFavorite) await ClearOtherFavoritesAsync(userId, method, ct);
         await _db.SaveChangesAsync(ct);
 
-        var (expMonth, expTotal, incMonth, incTotal) = await AggregateAsync(id, userId, DateTime.UtcNow, ct);
-        return Map(method, baseCurrency, expMonth, expTotal, incMonth, incTotal);
+        var (expMonth, expTotal, incMonth, incTotal, paidToCard, funded) = await AggregateAsync(id, userId, DateTime.UtcNow, ct);
+        return Map(method, baseCurrency, expMonth, expTotal, incMonth, incTotal, paidToCard, funded);
+    }
+
+    public async Task<PaymentMethodDto> SetFavoriteAsync(int id, bool isFavorite, CancellationToken ct = default)
+    {
+        var userId = _current.RequireUserId();
+        var baseCurrency = (await _profile.GetAsync(ct)).Currency;
+        var method = await _db.PaymentMethods.FirstOrDefaultAsync(p => p.Id == id && p.UserId == userId, ct)
+            ?? throw new NotFoundException("El medio de pago no existe.");
+
+        method.IsFavorite = isFavorite;
+        if (isFavorite) await ClearOtherFavoritesAsync(userId, method, ct);
+        await _db.SaveChangesAsync(ct);
+
+        var (expMonth, expTotal, incMonth, incTotal, paidToCard, funded) = await AggregateAsync(id, userId, DateTime.UtcNow, ct);
+        return Map(method, baseCurrency, expMonth, expTotal, incMonth, incTotal, paidToCard, funded);
     }
 
     /// <summary>Ensures a single favorite per user by unsetting the flag on every other method.</summary>
@@ -148,8 +183,8 @@ public class PaymentMethodService : IPaymentMethodService
         await _db.SaveChangesAsync(ct);
     }
 
-    private async Task<(decimal expMonth, decimal expTotal, decimal incMonth, decimal incTotal)> AggregateAsync(
-        int id, string userId, DateTime now, CancellationToken ct)
+    private async Task<(decimal expMonth, decimal expTotal, decimal incMonth, decimal incTotal,
+        decimal paidToCard, decimal funded)> AggregateAsync(int id, string userId, DateTime now, CancellationToken ct)
     {
         var expMonth = await _db.Expenses
             .Where(e => e.UserId == userId && e.PaymentMethodId == id
@@ -165,7 +200,13 @@ public class PaymentMethodService : IPaymentMethodService
         var incTotal = await _db.Incomes
             .Where(i => i.UserId == userId && i.PaymentMethodId == id)
             .SumAsync(i => (decimal?)i.Amount, ct) ?? 0m;
-        return (expMonth, expTotal, incMonth, incTotal);
+        var paidToCard = await _db.CardPayments
+            .Where(p => p.UserId == userId && p.CreditCardId == id)
+            .SumAsync(p => (decimal?)p.Amount, ct) ?? 0m;
+        var funded = await _db.CardPayments
+            .Where(p => p.UserId == userId && p.SourcePaymentMethodId == id)
+            .SumAsync(p => (decimal?)p.Amount, ct) ?? 0m;
+        return (expMonth, expTotal, incMonth, incTotal, paidToCard, funded);
     }
 
     public async Task DeleteAsync(int id, CancellationToken ct = default)
@@ -179,14 +220,82 @@ public class PaymentMethodService : IPaymentMethodService
         await _db.SaveChangesAsync(ct);
     }
 
+    public async Task<CardPaymentDto> PayCardAsync(int cardId, CardPaymentCreateDto dto, CancellationToken ct = default)
+    {
+        var userId = _current.RequireUserId();
+        var baseCurrency = (await _profile.GetAsync(ct)).Currency;
+
+        var card = await _db.PaymentMethods.FirstOrDefaultAsync(p => p.Id == cardId && p.UserId == userId, ct)
+            ?? throw new NotFoundException("La tarjeta no existe.");
+        if (card.Type != PaymentMethodType.CreditCard)
+            throw new ValidationException("Solo se pueden pagar tarjetas de crédito.");
+
+        var currency = card.Currency ?? baseCurrency;
+
+        PaymentMethod? source = null;
+        if (dto.SourcePaymentMethodId is not null)
+        {
+            source = await _db.PaymentMethods
+                .FirstOrDefaultAsync(p => p.Id == dto.SourcePaymentMethodId && p.UserId == userId, ct)
+                ?? throw new NotFoundException("La cuenta de origen no existe.");
+            if (source.Type == PaymentMethodType.CreditCard)
+                throw new ValidationException("El pago debe salir de una cuenta de efectivo o débito.");
+            var sourceCurrency = source.Currency ?? baseCurrency;
+            if (!string.Equals(sourceCurrency, currency, StringComparison.OrdinalIgnoreCase))
+                throw new ValidationException("La cuenta de origen debe estar en la misma moneda que la tarjeta.");
+        }
+
+        var payment = new CardPayment
+        {
+            CreditCardId = card.Id,
+            SourcePaymentMethodId = source?.Id,
+            Amount = dto.Amount,
+            Currency = currency,
+            Date = dto.Date ?? DateTime.UtcNow,
+            Note = dto.Note?.Trim(),
+            UserId = userId
+        };
+        _db.CardPayments.Add(payment);
+        await _db.SaveChangesAsync(ct);
+
+        return new CardPaymentDto(
+            payment.Id, card.Id, card.Name, source?.Id, source?.Name,
+            payment.Amount, payment.Currency, payment.Date, payment.Note);
+    }
+
+    public async Task<IReadOnlyList<CardPaymentDto>> GetCardPaymentsAsync(int cardId, CancellationToken ct = default)
+    {
+        var userId = _current.RequireUserId();
+        return await _db.CardPayments
+            .Where(p => p.UserId == userId && p.CreditCardId == cardId)
+            .OrderByDescending(p => p.Date)
+            .Select(p => new CardPaymentDto(
+                p.Id, p.CreditCardId, p.CreditCard!.Name,
+                p.SourcePaymentMethodId, p.SourcePaymentMethod != null ? p.SourcePaymentMethod.Name : null,
+                p.Amount, p.Currency, p.Date, p.Note))
+            .ToListAsync(ct);
+    }
+
+    public async Task DeleteCardPaymentAsync(int paymentId, CancellationToken ct = default)
+    {
+        var userId = _current.RequireUserId();
+        var payment = await _db.CardPayments.FirstOrDefaultAsync(p => p.Id == paymentId && p.UserId == userId, ct)
+            ?? throw new NotFoundException("El pago no existe.");
+        _db.CardPayments.Remove(payment);
+        await _db.SaveChangesAsync(ct);
+    }
+
     private static PaymentMethodDto Map(
         PaymentMethod m, string baseCurrency,
-        decimal spentThisMonth, decimal totalCharged, decimal receivedThisMonth, decimal totalReceived)
+        decimal spentThisMonth, decimal totalCharged, decimal receivedThisMonth, decimal totalReceived,
+        decimal totalPaidToCard, decimal totalFundedFromThis)
     {
         var isCard = m.Type == PaymentMethodType.CreditCard;
-        // Credit card: balance is the debt owed (charges minus payments; payments arrive in a
-        // later phase). Debit/cash: balance is the money in the account (income minus expenses).
-        var balance = isCard ? totalCharged : totalReceived - totalCharged;
+        // Credit card: balance is the debt owed (charges minus payments applied to the card).
+        // Debit/cash: money in the account (income minus expenses minus card payments funded here).
+        var balance = isCard
+            ? totalCharged - totalPaidToCard
+            : totalReceived - totalCharged - totalFundedFromThis;
         decimal? available = isCard && m.CreditLimit is not null ? m.CreditLimit - balance : null;
         return new PaymentMethodDto(
             m.Id, m.Name, m.Type.ToString(), m.Currency ?? baseCurrency, m.Color, m.Icon,
