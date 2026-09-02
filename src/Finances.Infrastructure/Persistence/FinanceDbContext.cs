@@ -19,6 +19,7 @@ public class FinanceDbContext : IdentityDbContext<ApplicationUser>, IFinanceDbCo
     public DbSet<Credit> Credits => Set<Credit>();
     public DbSet<CreditPayment> CreditPayments => Set<CreditPayment>();
     public DbSet<CurrencyExchange> CurrencyExchanges => Set<CurrencyExchange>();
+    public DbSet<PaymentMethod> PaymentMethods => Set<PaymentMethod>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

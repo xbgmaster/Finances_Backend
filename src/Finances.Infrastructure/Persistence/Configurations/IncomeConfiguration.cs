@@ -19,5 +19,12 @@ public class IncomeConfiguration : IEntityTypeConfiguration<Income>
             .WithMany()
             .HasForeignKey(i => i.UserId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        // A payment method is optional; deleting it keeps the income (method becomes null).
+        builder.HasOne(i => i.PaymentMethod)
+            .WithMany()
+            .HasForeignKey(i => i.PaymentMethodId)
+            .OnDelete(DeleteBehavior.SetNull);
+        builder.HasIndex(i => i.PaymentMethodId);
     }
 }

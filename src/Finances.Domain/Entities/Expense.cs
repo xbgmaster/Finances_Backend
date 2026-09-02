@@ -28,6 +28,14 @@ public class Expense
     public int? CreditPaymentId { get; set; }
     public CreditPayment? CreditPayment { get; set; }
 
+    /// <summary>
+    /// Payment method / card this expense was paid with (optional). Lets the user track
+    /// spending per card and, for credit cards, how much of the limit is used. Null means
+    /// "unspecified" and is treated as cash/debit for cash-flow purposes.
+    /// </summary>
+    public int? PaymentMethodId { get; set; }
+    public PaymentMethod? PaymentMethod { get; set; }
+
     /// <summary>Propietario del gasto (Identity user id).</summary>
     public string UserId { get; set; } = string.Empty;
 }

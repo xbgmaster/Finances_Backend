@@ -26,7 +26,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 6,
+          "SelectedChildIndex": 5,
           "Children": [
             {
               "$type": "Bookmark",
@@ -41,10 +41,6 @@
               "Name": "ST:128:0:{116d2292-e37d-41cd-a077-ebacac4c8cc4}"
             },
             {
-              "$type": "Bookmark",
-              "Name": "ST:0:0:{1c4feeaa-4718-4aa9-859d-94ce25d182ba}"
-            },
-            {
               "$type": "Document",
               "DocumentIndex": 1,
               "Title": "CategoriesController.cs",
@@ -54,8 +50,7 @@
               "RelativeToolTip": "src\\Finances.Api\\Controllers\\CategoriesController.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAABgAAAA8AAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-08-25T03:58:53.875Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-08-25T03:58:53.875Z"
             },
             {
               "$type": "Document",
@@ -67,8 +62,7 @@
               "RelativeToolTip": "src\\Finances.Application\\Credits\\Queries\\GetCredits\\GetCreditsQuery.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAgAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-08-25T02:49:44Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-08-25T02:49:44Z"
             },
             {
               "$type": "Document",
@@ -78,7 +72,7 @@
               "RelativeDocumentMoniker": "src\\Finances.Api\\appsettings.json",
               "ToolTip": "C:\\Users\\aleja\\OneDrive\\Desktop\\Finances\\finances-backend\\Finances_Backend\\src\\Finances.Api\\appsettings.json",
               "RelativeToolTip": "src\\Finances.Api\\appsettings.json",
-              "ViewState": "AgIAAAwAAAAAAAAAAAAAAB0AAAAbAAAAAAAAAA==",
+              "ViewState": "AgIAAAwAAAAAAAAAAAAAAA8AAAAYAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
               "WhenOpened": "2026-08-01T03:18:34.837Z",
               "EditorCaption": ""
@@ -93,8 +87,7 @@
               "RelativeToolTip": "src\\Finances.Api\\appsettings.Development.json",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAwAAAA+AAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
-              "WhenOpened": "2026-08-01T03:18:33.576Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-08-01T03:18:33.576Z"
             }
           ]
         }

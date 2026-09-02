@@ -32,7 +32,10 @@ public class IncomeService : IIncomeService
         }
         return await query
             .OrderByDescending(i => i.Date)
-            .Select(i => new IncomeDto(i.Id, i.Amount, i.Description, i.Date, i.Currency ?? baseCurrency))
+            .Select(i => new IncomeDto(
+                i.Id, i.Amount, i.Description, i.Date, i.Currency ?? baseCurrency,
+                i.PaymentMethodId,
+                i.PaymentMethod != null ? i.PaymentMethod.Name : null))
             .ToListAsync(ct);
     }
 
@@ -44,17 +47,28 @@ public class IncomeService : IIncomeService
             ? baseCurrency
             : dto.Currency.Trim().ToUpperInvariant();
 
+        PaymentMethod? paymentMethod = null;
+        if (dto.PaymentMethodId is not null)
+        {
+            paymentMethod = await _db.PaymentMethods
+                .FirstOrDefaultAsync(p => p.Id == dto.PaymentMethodId && p.UserId == userId, ct)
+                ?? throw new NotFoundException("El medio de pago indicado no existe.");
+        }
+
         var income = new Income
         {
             Amount = dto.Amount,
             Description = dto.Description?.Trim() ?? string.Empty,
             Date = dto.Date ?? DateTime.UtcNow,
             Currency = currency,
+            PaymentMethodId = paymentMethod?.Id,
             UserId = userId
         };
         _db.Incomes.Add(income);
         await _db.SaveChangesAsync(ct);
-        return new IncomeDto(income.Id, income.Amount, income.Description, income.Date, income.Currency ?? baseCurrency);
+        return new IncomeDto(
+            income.Id, income.Amount, income.Description, income.Date, income.Currency ?? baseCurrency,
+            paymentMethod?.Id, paymentMethod?.Name);
     }
 
     public async Task DeleteAsync(int id, CancellationToken ct = default)

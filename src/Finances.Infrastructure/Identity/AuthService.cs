@@ -2,6 +2,7 @@ using System.Net;
 using Finances.Application.Common;
 using Finances.Application.Dtos;
 using Finances.Application.Services;
+using Finances.Domain.Entities;
 using Finances.Infrastructure.Persistence;
 using Finances.Infrastructure.Seed;
 using Microsoft.AspNetCore.Identity;
@@ -58,8 +59,9 @@ public class AuthService : IAuthService
 
         await _users.AddToRoleAsync(user, UserRole);
 
-        // Every new user receives the default categories.
+        // Every new user receives the default categories and a default cash account.
         _db.Categories.AddRange(DefaultCategories.For(user.Id));
+        _db.PaymentMethods.Add(PaymentMethod.DefaultCash(user.Id));
         await _db.SaveChangesAsync(ct);
 
         return await BuildResultAsync(user);

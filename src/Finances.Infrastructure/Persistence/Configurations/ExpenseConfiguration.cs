@@ -28,6 +28,13 @@ public class ExpenseConfiguration : IEntityTypeConfiguration<Expense>
             .OnDelete(DeleteBehavior.Cascade);
         builder.HasIndex(e => e.CreditPaymentId).IsUnique();
 
+        // A payment method is optional; deleting it keeps the expense (method becomes null).
+        builder.HasOne(e => e.PaymentMethod)
+            .WithMany()
+            .HasForeignKey(e => e.PaymentMethodId)
+            .OnDelete(DeleteBehavior.SetNull);
+        builder.HasIndex(e => e.PaymentMethodId);
+
         builder.Property(e => e.UserId).IsRequired().HasMaxLength(450);
         builder.HasIndex(e => e.UserId);
         builder.HasOne<ApplicationUser>()

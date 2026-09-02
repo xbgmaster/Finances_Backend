@@ -14,6 +14,12 @@ public class Income
     /// </summary>
     public string? Currency { get; set; }
 
+    /// <summary>
+    /// Account / payment method the income landed in (optional). Null means "unspecified".
+    /// </summary>
+    public int? PaymentMethodId { get; set; }
+    public PaymentMethod? PaymentMethod { get; set; }
+
     /// <summary>Propietario del ingreso (Identity user id).</summary>
     public string UserId { get; set; } = string.Empty;
 }

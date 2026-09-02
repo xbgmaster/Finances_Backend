@@ -24,13 +24,14 @@ public class ExpenseService : IExpenseService
         _profile = profile;
     }
 
-    public async Task<IReadOnlyList<ExpenseDto>> GetAllAsync(int? year, int? month, string? currency, CancellationToken ct = default)
+    public async Task<IReadOnlyList<ExpenseDto>> GetAllAsync(int? year, int? month, string? currency, int? paymentMethodId = null, CancellationToken ct = default)
     {
         var userId = _current.RequireUserId();
         var baseCurrency = (await _profile.GetAsync(ct)).Currency;
         var query = _db.Expenses.Include(e => e.Category).Where(e => e.UserId == userId);
         if (year is not null) query = query.Where(e => e.Date.Year == year);
         if (month is not null) query = query.Where(e => e.Date.Month == month);
+        if (paymentMethodId is not null) query = query.Where(e => e.PaymentMethodId == paymentMethodId);
         if (!string.IsNullOrWhiteSpace(currency))
         {
             var cur = currency.Trim().ToUpperInvariant();
@@ -46,7 +47,9 @@ public class ExpenseService : IExpenseService
                 e.Id, e.Amount, e.Description, e.Date,
                 e.CategoryId, e.Category!.Name, e.Category.Icon, e.Category.Color,
                 e.ReceiptUrl, e.Currency ?? baseCurrency,
-                e.CreditPayment != null ? e.CreditPayment.CreditId : (int?)null))
+                e.CreditPayment != null ? e.CreditPayment.CreditId : (int?)null,
+                e.PaymentMethodId,
+                e.PaymentMethod != null ? e.PaymentMethod.Name : null))
             .ToListAsync(ct);
     }
 
@@ -59,6 +62,7 @@ public class ExpenseService : IExpenseService
             : dto.Currency.Trim().ToUpperInvariant();
         var category = await _db.Categories.FirstOrDefaultAsync(c => c.Id == dto.CategoryId && c.UserId == userId, ct)
             ?? throw new NotFoundException("La categoria indicada no existe.");
+        var paymentMethod = await ResolvePaymentMethodAsync(dto.PaymentMethodId, userId, ct);
 
         string? receiptUrl = null;
         if (receipt is { Length: > 0 })
@@ -79,6 +83,7 @@ public class ExpenseService : IExpenseService
             CategoryId = dto.CategoryId,
             ReceiptUrl = receiptUrl,
             Currency = currency,
+            PaymentMethodId = paymentMethod?.Id,
             UserId = userId
         };
         _db.Expenses.Add(expense);
@@ -87,7 +92,8 @@ public class ExpenseService : IExpenseService
         return new ExpenseDto(
             expense.Id, expense.Amount, expense.Description, expense.Date,
             category.Id, category.Name, category.Icon, category.Color,
-            expense.ReceiptUrl, expense.Currency ?? baseCurrency);
+            expense.ReceiptUrl, expense.Currency ?? baseCurrency,
+            null, paymentMethod?.Id, paymentMethod?.Name);
     }
 
     public async Task<ExpenseDto> UpdateAsync(int id, ExpenseUpdateDto dto, FileUpload? receipt, CancellationToken ct = default)
@@ -104,6 +110,7 @@ public class ExpenseService : IExpenseService
 
         var category = await _db.Categories.FirstOrDefaultAsync(c => c.Id == dto.CategoryId && c.UserId == userId, ct)
             ?? throw new NotFoundException("La categoria indicada no existe.");
+        var paymentMethod = await ResolvePaymentMethodAsync(dto.PaymentMethodId, userId, ct);
 
         // Receipt: a new upload replaces the old file; otherwise honor an explicit removal.
         if (receipt is { Length: > 0 })
@@ -130,13 +137,23 @@ public class ExpenseService : IExpenseService
         expense.Currency = string.IsNullOrWhiteSpace(dto.Currency)
             ? baseCurrency
             : dto.Currency.Trim().ToUpperInvariant();
+        expense.PaymentMethodId = paymentMethod?.Id;
 
         await _db.SaveChangesAsync(ct);
 
         return new ExpenseDto(
             expense.Id, expense.Amount, expense.Description, expense.Date,
             category.Id, category.Name, category.Icon, category.Color,
-            expense.ReceiptUrl, expense.Currency ?? baseCurrency);
+            expense.ReceiptUrl, expense.Currency ?? baseCurrency,
+            null, paymentMethod?.Id, paymentMethod?.Name);
+    }
+
+    private async Task<PaymentMethod> ResolvePaymentMethodAsync(int? id, string userId, CancellationToken ct)
+    {
+        if (id is null)
+            throw new ValidationException("Selecciona un medio de pago para el gasto.");
+        return await _db.PaymentMethods.FirstOrDefaultAsync(p => p.Id == id && p.UserId == userId, ct)
+            ?? throw new NotFoundException("El medio de pago indicado no existe.");
     }
 
     public async Task DeleteAsync(int id, CancellationToken ct = default)

@@ -17,8 +17,9 @@ public class ExpensesController : ControllerBase
 
     [HttpGet]
     public async Task<ActionResult<IEnumerable<ExpenseDto>>> GetAll(
-        [FromQuery] int? year, [FromQuery] int? month, [FromQuery] string? currency, CancellationToken ct) =>
-        Ok(await _service.GetAllAsync(year, month, currency, ct));
+        [FromQuery] int? year, [FromQuery] int? month, [FromQuery] string? currency,
+        [FromQuery] int? paymentMethodId, CancellationToken ct) =>
+        Ok(await _service.GetAllAsync(year, month, currency, paymentMethodId, ct));
 
     /// <summary>
     /// Crea un gasto. Acepta multipart/form-data para adjuntar opcionalmente
