@@ -18,12 +18,13 @@ public class AdminController : ControllerBase
     public async Task<ActionResult<PagedResult<AdminUserDto>>> GetUsers(
         [FromQuery] string? search,
         [FromQuery] string? role,
+        [FromQuery] string? status,
         [FromQuery] DateTime? from,
         [FromQuery] DateTime? to,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 10,
         CancellationToken ct = default) =>
-        Ok(await _admin.GetUsersAsync(new UserFilter(search, role, from, to, page, pageSize), ct));
+        Ok(await _admin.GetUsersAsync(new UserFilter(search, role, from, to, page, pageSize, status), ct));
 
     [HttpGet("users/{id}")]
     public async Task<ActionResult<AdminUserDto>> GetUser(string id, CancellationToken ct) =>
@@ -37,11 +38,12 @@ public class AdminController : ControllerBase
     public async Task<IActionResult> Export(
         [FromQuery] string? search,
         [FromQuery] string? role,
+        [FromQuery] string? status,
         [FromQuery] DateTime? from,
         [FromQuery] DateTime? to,
         CancellationToken ct = default)
     {
-        var csv = await _admin.ExportUsersCsvAsync(new UserFilter(search, role, from, to, 1, int.MaxValue), ct);
+        var csv = await _admin.ExportUsersCsvAsync(new UserFilter(search, role, from, to, 1, int.MaxValue, status), ct);
         return File(csv, "text/csv", $"users-{DateTime.UtcNow:yyyyMMdd}.csv");
     }
 }

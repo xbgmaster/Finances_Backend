@@ -10,9 +10,6 @@ public record AdminUserDto(
     bool OnboardingCompleted,
     DateTime CreatedAt,
     DateTime? LastLoginAt,
-    decimal TotalIncome,
-    decimal TotalExpense,
-    decimal Balance,
     int ExpenseCount);
 
 public record PagedResult<T>(IReadOnlyList<T> Items, int Total, int Page, int PageSize);
@@ -24,11 +21,11 @@ public record AdminStatsDto(
     int AdminUsers,
     int ActiveUsers,
     int NewUsersThisMonth,
-    decimal TotalIncome,
-    decimal TotalExpense,
-    int TotalExpenses,
-    IReadOnlyList<MonthCountDto> SignupsByMonth,
-    IReadOnlyList<AdminUserDto> TopUsersBySpend);
+    int NeverLoggedIn,
+    int InactiveUsers,
+    int PendingOnboarding,
+    int UsersWithActivity,
+    IReadOnlyList<MonthCountDto> SignupsByMonth);
 
 public record UserFilter(
     string? Search,
@@ -36,4 +33,5 @@ public record UserFilter(
     DateTime? From,
     DateTime? To,
     int Page = 1,
-    int PageSize = 10);
+    int PageSize = 10,
+    string? Status = null);
