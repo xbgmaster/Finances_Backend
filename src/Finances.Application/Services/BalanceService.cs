@@ -160,14 +160,13 @@ public class BalanceService : IBalanceService
 
         var rangeStart = currentMonthStart.AddMonths(-(months - 1));
 
-        // Only categories that have a budget in the selected currency.
+        // Only categories that have a budget in the selected currency, or that
+        // actually spent something in the requested window (so unbudgeted
+        // spending like entertainment or debt payments still shows up).
         var allCategories = await _db.Categories
             .Where(c => c.UserId == userId)
             .OrderBy(c => c.Name)
             .ToListAsync(ct);
-        var categories = allCategories
-            .Where(c => CategoryBudgetHelper.Effective(c, target, baseCurrency) is decimal b && b > 0)
-            .ToList();
 
         var expenseQuery = _db.Expenses
             .Where(e => e.UserId == userId && e.Date >= rangeStart);
@@ -181,6 +180,13 @@ public class BalanceService : IBalanceService
         var spentLookup = expenses
             .GroupBy(e => (e.CategoryId, e.Year, e.Month))
             .ToDictionary(g => g.Key, g => g.Sum(x => x.Amount));
+        var spentCategoryIds = expenses.Select(e => e.CategoryId).ToHashSet();
+
+        var categories = allCategories
+            .Where(c =>
+                (CategoryBudgetHelper.Effective(c, target, baseCurrency) is decimal b && b > 0)
+                || spentCategoryIds.Contains(c.Id))
+            .ToList();
 
         var monthDtos = monthKeys
             .Select(k => new BudgetHistoryMonthDto(k.Year, k.Month))
@@ -191,7 +197,7 @@ public class BalanceService : IBalanceService
 
         foreach (var c in categories)
         {
-            var budget = CategoryBudgetHelper.Effective(c, target, baseCurrency)!.Value;
+            var budget = CategoryBudgetHelper.Effective(c, target, baseCurrency) ?? 0m;
             var cells = new List<BudgetHistoryCellDto>(monthKeys.Count);
             decimal totalSpent = 0m;
             var overCount = 0;
@@ -199,7 +205,7 @@ public class BalanceService : IBalanceService
             foreach (var (year, month) in monthKeys)
             {
                 spentLookup.TryGetValue((c.Id, year, month), out var spent);
-                var over = spent > budget;
+                var over = budget > 0 && spent > budget;
                 if (over)
                 {
                     overCount++;
