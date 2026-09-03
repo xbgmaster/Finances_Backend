@@ -55,7 +55,11 @@ builder.Services.AddCors(options =>
                 "http://localhost:5173",
                 "http://localhost:5174",
                 "http://127.0.0.1:5173",
-                "https://finances-frontend-y0sk.onrender.com")
+                "https://finances-frontend-y0sk.onrender.com",
+                "https://localhost",
+                "http://localhost",
+                "capacitor://localhost",
+                "ionic://localhost")
             .AllowAnyHeader()
             .AllowAnyMethod());
 });
