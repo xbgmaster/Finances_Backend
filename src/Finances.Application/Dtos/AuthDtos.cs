@@ -12,6 +12,12 @@ public class RegisterDto
 
     [MaxLength(120)]
     public string? FullName { get; set; }
+
+    [MaxLength(80)]
+    public string? Country { get; set; }
+
+    [MaxLength(3)]
+    public string? Currency { get; set; }
 }
 
 public class LoginDto

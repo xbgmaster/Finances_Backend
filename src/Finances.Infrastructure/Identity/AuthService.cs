@@ -49,6 +49,8 @@ public class AuthService : IAuthService
             UserName = dto.Email,
             Email = dto.Email,
             FullName = dto.FullName,
+            Country = dto.Country?.Trim(),
+            Currency = string.IsNullOrWhiteSpace(dto.Currency) ? "CAD" : dto.Currency.Trim().ToUpperInvariant(),
             CreatedAt = DateTime.UtcNow,
             LastLoginAt = DateTime.UtcNow
         };
