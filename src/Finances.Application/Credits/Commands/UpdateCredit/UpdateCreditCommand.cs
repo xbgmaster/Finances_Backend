@@ -20,11 +20,21 @@ public record UpdateCreditCommand : IRequest<CreditSummaryDto?>
     /// <summary>Interest model: CompoundFrench or SimpleFlat.</summary>
     public string InterestModel { get; init; } = "CompoundFrench";
 
+    /// <summary>Rate conversion: EffectiveAnnual (% E.A.) or Nominal (annual/12). Defaults to
+    /// Nominal so an old client that omits it does not silently change an existing credit.</summary>
+    public string RateConvention { get; init; } = "Nominal";
+
     /// <summary>What a partial prepayment does: ReduceTerm or ReduceInstallment.</summary>
     public string PrepaymentEffect { get; init; } = "ReduceTerm";
 
     /// <summary>Optional early-payoff penalty as a percentage of the prepaid amount (0 = none).</summary>
     public decimal PrepaymentPenaltyRate { get; init; }
+
+    /// <summary>Optional monthly life-insurance premium as a % of the outstanding balance (0 = none).</summary>
+    public decimal MonthlyInsuranceRate { get; init; }
+
+    /// <summary>Optional fixed monthly charge for commissions/other insurances (0 = none).</summary>
+    public decimal MonthlyFixedFee { get; init; }
 
     public decimal Principal { get; init; }
     public decimal AnnualInterestRate { get; init; }

@@ -27,8 +27,18 @@ public class CreateCreditCommandValidator : AbstractValidator<CreateCreditComman
             .Must(m => Enum.TryParse<PrepaymentEffect>(m, ignoreCase: true, out _))
             .WithMessage("El efecto de prepago no es valido (ReduceTerm, ReduceInstallment).");
 
+        RuleFor(x => x.RateConvention)
+            .Must(m => Enum.TryParse<RateConvention>(m, ignoreCase: true, out _))
+            .WithMessage("La convencion de tasa no es valida (Nominal, EffectiveAnnual).");
+
         RuleFor(x => x.PrepaymentPenaltyRate)
             .InclusiveBetween(0, 100).WithMessage("La penalidad de prepago debe estar entre 0 y 100.");
+
+        RuleFor(x => x.MonthlyInsuranceRate)
+            .InclusiveBetween(0, 100).WithMessage("El seguro mensual debe estar entre 0 y 100%.");
+
+        RuleFor(x => x.MonthlyFixedFee)
+            .GreaterThanOrEqualTo(0).WithMessage("El cargo fijo mensual no puede ser negativo.");
 
         RuleFor(x => x.Principal)
             .GreaterThan(0).WithMessage("El valor del credito debe ser mayor que cero.");

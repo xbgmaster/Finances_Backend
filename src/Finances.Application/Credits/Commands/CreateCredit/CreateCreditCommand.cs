@@ -17,6 +17,9 @@ public record CreateCreditCommand : IRequest<CreditDto>
     /// <summary>Interest model: CompoundFrench (default) or SimpleFlat.</summary>
     public string InterestModel { get; init; } = "CompoundFrench";
 
+    /// <summary>Rate conversion: EffectiveAnnual (default, % E.A.) or Nominal (annual/12).</summary>
+    public string RateConvention { get; init; } = "EffectiveAnnual";
+
     /// <summary>Early-payoff rebate method: Actuarial (default), RuleOf78 or None.</summary>
     public string PrepaymentRebateMethod { get; init; } = "Actuarial";
 
@@ -25,6 +28,12 @@ public record CreateCreditCommand : IRequest<CreditDto>
 
     /// <summary>Optional early-payoff penalty as a percentage of the prepaid amount (0 = none).</summary>
     public decimal PrepaymentPenaltyRate { get; init; }
+
+    /// <summary>Optional monthly life-insurance premium as a % of the outstanding balance (0 = none).</summary>
+    public decimal MonthlyInsuranceRate { get; init; }
+
+    /// <summary>Optional fixed monthly charge for commissions/other insurances (0 = none).</summary>
+    public decimal MonthlyFixedFee { get; init; }
 
     public decimal Principal { get; init; }
     public decimal AnnualInterestRate { get; init; }

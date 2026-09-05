@@ -16,6 +16,13 @@ public class Credit
     /// <summary>How interest is charged (French vs simple/flat). Drives the calculation.</summary>
     public InterestModel InterestModel { get; set; } = InterestModel.CompoundFrench;
 
+    /// <summary>
+    /// How the annual rate is converted to a monthly rate. Existing credits default to
+    /// <see cref="RateConvention.Nominal"/> (annual/12); new credits created from the app
+    /// default to <see cref="RateConvention.EffectiveAnnual"/> to match bank statements (% E.A.).
+    /// </summary>
+    public RateConvention RateConvention { get; set; } = RateConvention.Nominal;
+
     /// <summary>How unearned interest is refunded on early payoff (mainly for flat credits).</summary>
     public PrepaymentRebateMethod PrepaymentRebateMethod { get; set; } = PrepaymentRebateMethod.Actuarial;
 
@@ -24,6 +31,19 @@ public class Credit
 
     /// <summary>Optional early-payoff penalty as a percentage of the prepaid amount (0 = none).</summary>
     public decimal PrepaymentPenaltyRate { get; set; }
+
+    /// <summary>
+    /// Optional monthly life-insurance premium charged as a percentage of the OUTSTANDING
+    /// balance at the start of each period (0 = none). Mirrors how banks bill "seguro de vida":
+    /// it shrinks as the balance goes down. Added on top of the installment, never to principal.
+    /// </summary>
+    public decimal MonthlyInsuranceRate { get; set; }
+
+    /// <summary>
+    /// Optional fixed monthly charge (commissions, other insurances, etc.) added to every
+    /// installment (0 = none). Added on top of the installment, never to principal/interest.
+    /// </summary>
+    public decimal MonthlyFixedFee { get; set; }
 
     /// <summary>Original amount borrowed (capital).</summary>
     public decimal Principal { get; set; }

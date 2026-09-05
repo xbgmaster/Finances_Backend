@@ -2,13 +2,20 @@ using Finances.Domain.Entities;
 
 namespace Finances.Application.Credits.Calculations;
 
-/// <summary>A single row of the amortization schedule (one scheduled installment).</summary>
+/// <summary>
+/// A single row of the amortization schedule. Normally one scheduled installment, but it
+/// can also represent a principal prepayment (abono a capital) shown on its own line: in
+/// that case <see cref="IsPrepayment"/> is true, <see cref="Interest"/> is 0 and
+/// <see cref="Date"/> carries the real payment date instead of the installment due date.
+/// </summary>
 public record AmortizationRow(
     int Number,
     decimal Installment,
     decimal Interest,
     decimal Principal,
-    decimal RemainingBalance);
+    decimal RemainingBalance,
+    DateTime? Date = null,
+    bool IsPrepayment = false);
 
 /// <summary>
 /// A single payment fed into the simulator: its date, amount, whether it is an extra

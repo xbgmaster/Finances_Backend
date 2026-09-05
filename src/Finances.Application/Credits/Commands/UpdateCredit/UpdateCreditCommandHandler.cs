@@ -28,8 +28,11 @@ public class UpdateCreditCommandHandler : IRequestHandler<UpdateCreditCommand, C
         credit.Name = request.Name.Trim();
         credit.Type = Enum.Parse<CreditType>(request.Type, ignoreCase: true);
         credit.InterestModel = Enum.Parse<InterestModel>(request.InterestModel, ignoreCase: true);
+        credit.RateConvention = Enum.Parse<RateConvention>(request.RateConvention, ignoreCase: true);
         credit.PrepaymentEffect = Enum.Parse<PrepaymentEffect>(request.PrepaymentEffect, ignoreCase: true);
         credit.PrepaymentPenaltyRate = request.PrepaymentPenaltyRate;
+        credit.MonthlyInsuranceRate = request.MonthlyInsuranceRate;
+        credit.MonthlyFixedFee = request.MonthlyFixedFee;
         credit.Principal = request.Principal;
         credit.AnnualInterestRate = request.AnnualInterestRate;
         credit.TermMonths = request.TermMonths;

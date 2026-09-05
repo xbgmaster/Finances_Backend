@@ -18,16 +18,27 @@ namespace Finances.Application.Credits.Calculations;
 /// </summary>
 public static class AmortizationCalculator
 {
-    /// <summary>Converts an annual percentage rate into a nominal monthly rate (fraction).</summary>
-    public static decimal MonthlyRateFromAnnual(decimal annualRatePercent) =>
-        annualRatePercent / 100m / 12m;
+    /// <summary>
+    /// Converts an annual percentage rate into a monthly rate (fraction) using the given
+    /// <see cref="RateConvention"/>. Nominal divides by 12; EffectiveAnnual uses
+    /// (1 + annual)^(1/12) − 1, matching bank statements quoted as % E.A.
+    /// </summary>
+    public static decimal MonthlyRateFromAnnual(decimal annualRatePercent, RateConvention convention = RateConvention.Nominal)
+    {
+        if (annualRatePercent <= 0m) return 0m;
+        return convention == RateConvention.EffectiveAnnual
+            ? (decimal)(Math.Pow(1.0 + (double)annualRatePercent / 100.0, 1.0 / 12.0) - 1.0)
+            : annualRatePercent / 100m / 12m;
+    }
 
     /// <summary>Builds the repayment plan using the French model (kept for backward compatibility).</summary>
     public static AmortizationPlan BuildPlan(decimal principal, decimal annualRatePercent, int termMonths) =>
         BuildPlan(principal, annualRatePercent, termMonths, InterestModel.CompoundFrench);
 
     /// <summary>Builds the full repayment plan (installment + schedule) for the given interest model.</summary>
-    public static AmortizationPlan BuildPlan(decimal principal, decimal annualRatePercent, int termMonths, InterestModel model)
+    public static AmortizationPlan BuildPlan(
+        decimal principal, decimal annualRatePercent, int termMonths, InterestModel model,
+        RateConvention convention = RateConvention.Nominal)
     {
         if (principal <= 0) throw new ArgumentOutOfRangeException(nameof(principal));
         if (termMonths <= 0) throw new ArgumentOutOfRangeException(nameof(termMonths));
@@ -35,8 +46,8 @@ public static class AmortizationCalculator
 
         return model switch
         {
-            InterestModel.SimpleFlat => BuildFlatPlan(principal, annualRatePercent, termMonths),
-            _ => BuildFrenchPlan(principal, annualRatePercent, termMonths),
+            InterestModel.SimpleFlat => BuildFlatPlan(principal, annualRatePercent, termMonths, convention),
+            _ => BuildFrenchPlan(principal, annualRatePercent, termMonths, convention),
         };
     }
 
@@ -49,9 +60,9 @@ public static class AmortizationCalculator
             : Round(principal * (i * Pow(1 + i, termMonths)) / (Pow(1 + i, termMonths) - 1));
     }
 
-    private static AmortizationPlan BuildFrenchPlan(decimal principal, decimal annualRatePercent, int termMonths)
+    private static AmortizationPlan BuildFrenchPlan(decimal principal, decimal annualRatePercent, int termMonths, RateConvention convention)
     {
-        var i = MonthlyRateFromAnnual(annualRatePercent);
+        var i = MonthlyRateFromAnnual(annualRatePercent, convention);
 
         var installment = FrenchInstallment(principal, i, termMonths);
 
@@ -91,7 +102,7 @@ public static class AmortizationCalculator
         return new AmortizationPlan(i, installment, Round(totalToPay), Round(totalInterest), effective, schedule);
     }
 
-    private static AmortizationPlan BuildFlatPlan(decimal principal, decimal annualRatePercent, int termMonths)
+    private static AmortizationPlan BuildFlatPlan(decimal principal, decimal annualRatePercent, int termMonths, RateConvention convention)
     {
         // Simple interest on the ORIGINAL principal for the whole term.
         var years = termMonths / 12m;
@@ -131,7 +142,7 @@ public static class AmortizationCalculator
             schedule.Add(new AmortizationRow(k, rowInstallment, interest, principalPortion, balance));
         }
 
-        var monthlyRate = MonthlyRateFromAnnual(annualRatePercent);
+        var monthlyRate = MonthlyRateFromAnnual(annualRatePercent, convention);
         var effective = EffectiveAnnualRatePercent(principal, schedule);
         return new AmortizationPlan(monthlyRate, installment, totalToPay, totalInterest, effective, schedule);
     }
@@ -210,10 +221,11 @@ public static class AmortizationCalculator
     /// </summary>
     public static CreditSimulation Simulate(
         decimal principal, decimal annualRatePercent, int termMonths, InterestModel model,
-        DateTime startDate, IReadOnlyList<PaymentEvent> payments)
+        DateTime startDate, IReadOnlyList<PaymentEvent> payments,
+        RateConvention convention = RateConvention.Nominal)
     {
         payments ??= Array.Empty<PaymentEvent>();
-        var plan = BuildPlan(principal, annualRatePercent, termMonths, model);
+        var plan = BuildPlan(principal, annualRatePercent, termMonths, model, convention);
 
         var hasPrepayments = payments.Any(p => p.IsPrincipalPrepayment && p.Amount > 0m);
         if (!hasPrepayments)
@@ -237,7 +249,7 @@ public static class AmortizationCalculator
                 Schedule: plan.Schedule);
         }
 
-        var i = MonthlyRateFromAnnual(annualRatePercent);
+        var i = MonthlyRateFromAnnual(annualRatePercent, convention);
         return model == InterestModel.SimpleFlat
             ? SimulateFlatWithPrepayments(principal, termMonths, plan, payments)
             : SimulateFrenchWithPrepayments(principal, i, termMonths, startDate, payments);
@@ -427,30 +439,38 @@ public static class AmortizationCalculator
             var scheduledPrincipal = Math.Max(0m, installment - interest);
             if (scheduledPrincipal > balance) scheduledPrincipal = balance;
 
-            var afterInstallment = Round(balance - scheduledPrincipal);
-            var extra = 0m;
+            balance = Round(balance - scheduledPrincipal);
+            if (balance < 0m) balance = 0m;
 
+            // Regular installment row (the abono is NOT folded in; it gets its own line).
+            rows.Add(new AmortizationRow(k, Round(interest + scheduledPrincipal), interest, Round(scheduledPrincipal), balance));
+
+            // Any abono a capital in this billing cycle is emitted as its own dated row,
+            // right after the installment (so its date reads naturally in the timeline).
             if (prepaymentsByPeriod.TryGetValue(k, out var preps))
             {
                 foreach (var p in preps)
                 {
-                    var applied = Math.Min(p.Amount, Round(afterInstallment - extra));
+                    if (balance <= 0m) break;
+                    var applied = Math.Min(p.Amount, balance);
                     if (applied <= 0m) continue;
-                    extra += applied;
+
+                    balance = Round(balance - applied);
+                    if (balance < 0m) balance = 0m;
+
+                    rows.Add(new AmortizationRow(
+                        Number: k,
+                        Installment: Round(applied),
+                        Interest: 0m,
+                        Principal: Round(applied),
+                        RemainingBalance: balance,
+                        Date: p.Date,
+                        IsPrepayment: true));
 
                     if (p.Effect == PrepaymentEffect.ReduceInstallment)
-                    {
-                        var newBalance = Round(afterInstallment - extra);
-                        installment = FrenchInstallment(newBalance, i, Math.Max(1, termMonths - k));
-                    }
+                        installment = FrenchInstallment(balance, i, Math.Max(1, termMonths - k));
                 }
             }
-
-            var totalPrincipal = Math.Min(scheduledPrincipal + extra, balance);
-            balance = Round(balance - totalPrincipal);
-            if (balance < 0m) balance = 0m;
-
-            rows.Add(new AmortizationRow(k, Round(interest + totalPrincipal), interest, Round(totalPrincipal), balance));
         }
 
         return rows;

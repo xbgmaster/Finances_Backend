@@ -6,12 +6,15 @@ public record CreditDto(
     string Name,
     string Type,
     string InterestModel,
+    string RateConvention,
     string? Currency,
     decimal Principal,
     decimal AnnualInterestRate,
     int TermMonths,
     DateTime StartDate,
     decimal PrepaymentPenaltyRate,
+    decimal MonthlyInsuranceRate,
+    decimal MonthlyFixedFee,
     string PrepaymentEffect,
     decimal MonthlyInstallment,
     decimal TotalToPay,
@@ -36,6 +39,7 @@ public record CreditSummaryDto(
     string Name,
     string Type,
     string InterestModel,
+    string RateConvention,
     string? Currency,
     decimal Principal,
     decimal AnnualInterestRate,
@@ -44,6 +48,10 @@ public record CreditSummaryDto(
     int TermMonths,
     DateTime StartDate,
     decimal MonthlyInstallment,
+    decimal MonthlyInsuranceRate,
+    decimal MonthlyFixedFee,
+    decimal MonthlyCharges,
+    decimal MonthlyTotalDue,
     decimal TotalToPay,
     decimal TotalInterest,
     decimal TotalPaid,
@@ -93,7 +101,10 @@ public record AmortizationRowDto(
     decimal Installment,
     decimal Interest,
     decimal Principal,
-    decimal RemainingBalance);
+    decimal RemainingBalance,
+    bool IsPrepayment = false,
+    decimal Charges = 0m,
+    decimal TotalDue = 0m);
 
 /// <summary>Full amortization schedule for a credit.</summary>
 public record CreditScheduleDto(int CreditId, IReadOnlyList<AmortizationRowDto> Rows);

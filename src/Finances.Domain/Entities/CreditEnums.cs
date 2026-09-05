@@ -21,6 +21,20 @@ public enum InterestModel
 }
 
 /// <summary>
+/// How an ANNUAL interest rate is converted into the monthly rate used for compounding.
+/// Latin-American loans (e.g. Colombia) quote <b>% E.A.</b> (efectivo anual) and convert with
+/// the effective formula; many other contexts quote a nominal APR divided by 12.
+/// </summary>
+public enum RateConvention
+{
+    /// <summary>Nominal: monthly rate = annual / 12. Overstates the effective monthly rate.</summary>
+    Nominal = 0,
+
+    /// <summary>Effective annual (E.A.): monthly rate = (1 + annual)^(1/12) − 1.</summary>
+    EffectiveAnnual = 1
+}
+
+/// <summary>
 /// How unearned interest is refunded when a flat-interest credit is paid off early.
 /// (French credits inherently save all future interest, so this mainly affects flat.)
 /// </summary>

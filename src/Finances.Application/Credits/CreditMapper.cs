@@ -14,12 +14,24 @@ public static class CreditMapper
     /// <summary>How many days before the due date we start warning "your installment is due soon".</summary>
     private const int DueSoonThresholdDays = 3;
 
+    /// <summary>
+    /// Monthly add-on charges (life insurance as a % of the given balance + a fixed fee).
+    /// These are billed on top of the installment ("valor a pagar"), never to principal/interest.
+    /// </summary>
+    private static decimal MonthlyCharge(decimal balance, Credit credit)
+    {
+        var insurance = balance > 0m
+            ? Math.Round(balance * (credit.MonthlyInsuranceRate / 100m), 2, MidpointRounding.AwayFromZero)
+            : 0m;
+        return Math.Round(insurance + credit.MonthlyFixedFee, 2, MidpointRounding.AwayFromZero);
+    }
+
     public static CreditSummaryDto ToSummary(Credit credit, IReadOnlyList<CreditPayment> payments, DateTime asOf)
     {
-        var plan = AmortizationCalculator.BuildPlan(credit.Principal, credit.AnnualInterestRate, credit.TermMonths, credit.InterestModel);
+        var plan = AmortizationCalculator.BuildPlan(credit.Principal, credit.AnnualInterestRate, credit.TermMonths, credit.InterestModel, credit.RateConvention);
         var sim = AmortizationCalculator.Simulate(
             credit.Principal, credit.AnnualInterestRate, credit.TermMonths, credit.InterestModel,
-            credit.StartDate, ToEvents(credit, payments));
+            credit.StartDate, ToEvents(credit, payments), credit.RateConvention);
 
         var progressPercent = credit.Principal <= 0
             ? 0m
@@ -35,11 +47,16 @@ public static class CreditMapper
 
         var due = ComputeDueStatus(credit, sim.InstallmentsCovered, sim.IsPaidOff, asOf);
 
+        // Add-on charges for the current outstanding balance (what the next "valor a pagar" carries).
+        var monthlyCharges = sim.IsPaidOff ? 0m : MonthlyCharge(sim.OutstandingPrincipal, credit);
+        var monthlyTotalDue = Math.Round(sim.CurrentInstallment + monthlyCharges, 2, MidpointRounding.AwayFromZero);
+
         return new CreditSummaryDto(
             Id: credit.Id,
             Name: credit.Name,
             Type: credit.Type.ToString(),
             InterestModel: credit.InterestModel.ToString(),
+            RateConvention: credit.RateConvention.ToString(),
             Currency: credit.Currency,
             Principal: credit.Principal,
             AnnualInterestRate: credit.AnnualInterestRate,
@@ -48,6 +65,10 @@ public static class CreditMapper
             TermMonths: credit.TermMonths,
             StartDate: credit.StartDate,
             MonthlyInstallment: sim.CurrentInstallment,
+            MonthlyInsuranceRate: credit.MonthlyInsuranceRate,
+            MonthlyFixedFee: credit.MonthlyFixedFee,
+            MonthlyCharges: monthlyCharges,
+            MonthlyTotalDue: monthlyTotalDue,
             TotalToPay: sim.TotalToPay,
             TotalInterest: sim.TotalInterest,
             TotalPaid: sim.TotalPaid,
@@ -79,7 +100,7 @@ public static class CreditMapper
     {
         var sim = AmortizationCalculator.Simulate(
             credit.Principal, credit.AnnualInterestRate, credit.TermMonths, credit.InterestModel,
-            credit.StartDate, ToEvents(credit, payments));
+            credit.StartDate, ToEvents(credit, payments), credit.RateConvention);
 
         var progressPercent = credit.Principal <= 0
             ? 0m
@@ -92,12 +113,15 @@ public static class CreditMapper
             Name: credit.Name,
             Type: credit.Type.ToString(),
             InterestModel: credit.InterestModel.ToString(),
+            RateConvention: credit.RateConvention.ToString(),
             Currency: credit.Currency,
             Principal: credit.Principal,
             AnnualInterestRate: credit.AnnualInterestRate,
             TermMonths: credit.TermMonths,
             StartDate: credit.StartDate,
             PrepaymentPenaltyRate: credit.PrepaymentPenaltyRate,
+            MonthlyInsuranceRate: credit.MonthlyInsuranceRate,
+            MonthlyFixedFee: credit.MonthlyFixedFee,
             PrepaymentEffect: credit.PrepaymentEffect.ToString(),
             MonthlyInstallment: sim.CurrentInstallment,
             TotalToPay: sim.TotalToPay,
@@ -117,16 +141,30 @@ public static class CreditMapper
     {
         var sim = AmortizationCalculator.Simulate(
             credit.Principal, credit.AnnualInterestRate, credit.TermMonths, credit.InterestModel,
-            credit.StartDate, ToEvents(credit, payments));
+            credit.StartDate, ToEvents(credit, payments), credit.RateConvention);
 
         var rows = sim.Schedule
-            .Select(r => new AmortizationRowDto(
-                r.Number,
-                DueDateForInstallment(credit, r.Number),
-                r.Installment,
-                r.Interest,
-                r.Principal,
-                r.RemainingBalance))
+            .Select(r =>
+            {
+                // Insurance is billed on the balance at the START of the installment period
+                // (before this row's principal is applied). Prepayment rows carry no charges.
+                var startBalance = r.RemainingBalance + r.Principal;
+                var charges = r.IsPrepayment ? 0m : MonthlyCharge(startBalance, credit);
+                var totalDue = Math.Round(r.Installment + charges, 2, MidpointRounding.AwayFromZero);
+
+                return new AmortizationRowDto(
+                    r.Number,
+                    r.IsPrepayment && r.Date.HasValue
+                        ? DateTime.SpecifyKind(r.Date.Value, DateTimeKind.Utc)
+                        : DueDateForInstallment(credit, r.Number),
+                    r.Installment,
+                    r.Interest,
+                    r.Principal,
+                    r.RemainingBalance,
+                    r.IsPrepayment,
+                    charges,
+                    totalDue);
+            })
             .ToList();
         return new CreditScheduleDto(credit.Id, rows);
     }
