@@ -22,5 +22,18 @@ public class CurrencyExchangeConfiguration : IEntityTypeConfiguration<CurrencyEx
             .WithMany()
             .HasForeignKey(x => x.UserId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        // Optional source/destination accounts; deleting an account keeps the exchange
+        // (the link just becomes null).
+        builder.HasOne(x => x.FromPaymentMethod)
+            .WithMany()
+            .HasForeignKey(x => x.FromPaymentMethodId)
+            .OnDelete(DeleteBehavior.SetNull);
+        builder.HasOne(x => x.ToPaymentMethod)
+            .WithMany()
+            .HasForeignKey(x => x.ToPaymentMethodId)
+            .OnDelete(DeleteBehavior.SetNull);
+        builder.HasIndex(x => x.FromPaymentMethodId);
+        builder.HasIndex(x => x.ToPaymentMethodId);
     }
 }

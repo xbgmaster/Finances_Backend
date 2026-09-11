@@ -10,7 +10,11 @@ public record ExchangeDto(
     string ToCurrency,
     decimal ToAmount,
     decimal Rate,
-    string? Note);
+    string? Note,
+    int? FromPaymentMethodId = null,
+    string? FromPaymentMethodName = null,
+    int? ToPaymentMethodId = null,
+    string? ToPaymentMethodName = null);
 
 public class ExchangeCreateDto
 {
@@ -30,4 +34,11 @@ public class ExchangeCreateDto
 
     [MaxLength(300)]
     public string? Note { get; set; }
+
+    /// <summary>Cash/debit account the money leaves from (source currency). Optional.</summary>
+    public int? FromPaymentMethodId { get; set; }
+
+    /// <summary>Cash/debit account the money lands in (destination currency). Optional;
+    /// if omitted, it defaults to the destination currency's favorite/first cash account.</summary>
+    public int? ToPaymentMethodId { get; set; }
 }

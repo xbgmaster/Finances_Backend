@@ -29,6 +29,14 @@ public class CurrencyExchange
 
     public string? Note { get; set; }
 
+    /// <summary>Cash/debit account the money left from (source currency). Optional.</summary>
+    public int? FromPaymentMethodId { get; set; }
+    public PaymentMethod? FromPaymentMethod { get; set; }
+
+    /// <summary>Cash/debit account the money landed in (destination currency). Optional.</summary>
+    public int? ToPaymentMethodId { get; set; }
+    public PaymentMethod? ToPaymentMethod { get; set; }
+
     /// <summary>Owner of the exchange (Identity user id).</summary>
     public string UserId { get; set; } = string.Empty;
 }

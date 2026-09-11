@@ -72,18 +72,34 @@ public class PaymentMethodService : IPaymentMethodService
             .Select(g => new { Id = g.Key, Total = g.Sum(x => x.Amount) })
             .ToListAsync(ct);
 
+        // Currency exchanges that landed IN / left FROM each account.
+        var exchangeInAgg = await _db.CurrencyExchanges
+            .Where(x => x.UserId == userId && x.ToPaymentMethodId != null && ids.Contains(x.ToPaymentMethodId.Value))
+            .GroupBy(x => x.ToPaymentMethodId!.Value)
+            .Select(g => new { Id = g.Key, Total = g.Sum(x => x.ToAmount) })
+            .ToListAsync(ct);
+        var exchangeOutAgg = await _db.CurrencyExchanges
+            .Where(x => x.UserId == userId && x.FromPaymentMethodId != null && ids.Contains(x.FromPaymentMethodId.Value))
+            .GroupBy(x => x.FromPaymentMethodId!.Value)
+            .Select(g => new { Id = g.Key, Total = g.Sum(x => x.FromAmount) })
+            .ToListAsync(ct);
+
         var expenseById = expenseAgg.ToDictionary(a => a.Id);
         var incomeById = incomeAgg.ToDictionary(a => a.Id);
         var paidToCardById = paidToCardAgg.ToDictionary(a => a.Id, a => a.Total);
         var fundedById = fundedAgg.ToDictionary(a => a.Id, a => a.Total);
+        var exchangeInById = exchangeInAgg.ToDictionary(a => a.Id, a => a.Total);
+        var exchangeOutById = exchangeOutAgg.ToDictionary(a => a.Id, a => a.Total);
         return methods.Select(m =>
         {
             expenseById.TryGetValue(m.Id, out var exp);
             incomeById.TryGetValue(m.Id, out var inc);
             paidToCardById.TryGetValue(m.Id, out var paidToCard);
             fundedById.TryGetValue(m.Id, out var funded);
+            exchangeInById.TryGetValue(m.Id, out var exIn);
+            exchangeOutById.TryGetValue(m.Id, out var exOut);
             return Map(m, baseCurrency, exp?.Month ?? 0m, exp?.Total ?? 0m,
-                inc?.Month ?? 0m, inc?.Total ?? 0m, paidToCard, funded);
+                inc?.Month ?? 0m, inc?.Total ?? 0m, paidToCard, funded, exIn, exOut);
         }).ToList();
     }
 
@@ -96,8 +112,8 @@ public class PaymentMethodService : IPaymentMethodService
         var method = await _db.PaymentMethods.FirstOrDefaultAsync(p => p.Id == id && p.UserId == userId, ct);
         if (method is null) return null;
 
-        var (expMonth, expTotal, incMonth, incTotal, paidToCard, funded) = await AggregateAsync(id, userId, now, ct);
-        return Map(method, baseCurrency, expMonth, expTotal, incMonth, incTotal, paidToCard, funded);
+        var (expMonth, expTotal, incMonth, incTotal, paidToCard, funded, exIn, exOut) = await AggregateAsync(id, userId, now, ct);
+        return Map(method, baseCurrency, expMonth, expTotal, incMonth, incTotal, paidToCard, funded, exIn, exOut);
     }
 
     public async Task<PaymentMethodDto> CreateAsync(PaymentMethodCreateDto dto, CancellationToken ct = default)
@@ -146,8 +162,8 @@ public class PaymentMethodService : IPaymentMethodService
         if (dto.IsFavorite) await ClearOtherFavoritesAsync(userId, method, ct);
         await _db.SaveChangesAsync(ct);
 
-        var (expMonth, expTotal, incMonth, incTotal, paidToCard, funded) = await AggregateAsync(id, userId, DateTime.UtcNow, ct);
-        return Map(method, baseCurrency, expMonth, expTotal, incMonth, incTotal, paidToCard, funded);
+        var (expMonth, expTotal, incMonth, incTotal, paidToCard, funded, exIn, exOut) = await AggregateAsync(id, userId, DateTime.UtcNow, ct);
+        return Map(method, baseCurrency, expMonth, expTotal, incMonth, incTotal, paidToCard, funded, exIn, exOut);
     }
 
     public async Task<PaymentMethodDto> SetFavoriteAsync(int id, bool isFavorite, CancellationToken ct = default)
@@ -161,8 +177,8 @@ public class PaymentMethodService : IPaymentMethodService
         if (isFavorite) await ClearOtherFavoritesAsync(userId, method, ct);
         await _db.SaveChangesAsync(ct);
 
-        var (expMonth, expTotal, incMonth, incTotal, paidToCard, funded) = await AggregateAsync(id, userId, DateTime.UtcNow, ct);
-        return Map(method, baseCurrency, expMonth, expTotal, incMonth, incTotal, paidToCard, funded);
+        var (expMonth, expTotal, incMonth, incTotal, paidToCard, funded, exIn, exOut) = await AggregateAsync(id, userId, DateTime.UtcNow, ct);
+        return Map(method, baseCurrency, expMonth, expTotal, incMonth, incTotal, paidToCard, funded, exIn, exOut);
     }
 
     /// <summary>Ensures a single favorite per user by unsetting the flag on every other method.</summary>
@@ -184,7 +200,8 @@ public class PaymentMethodService : IPaymentMethodService
     }
 
     private async Task<(decimal expMonth, decimal expTotal, decimal incMonth, decimal incTotal,
-        decimal paidToCard, decimal funded)> AggregateAsync(int id, string userId, DateTime now, CancellationToken ct)
+        decimal paidToCard, decimal funded, decimal exchangeIn, decimal exchangeOut)> AggregateAsync(
+        int id, string userId, DateTime now, CancellationToken ct)
     {
         var expMonth = await _db.Expenses
             .Where(e => e.UserId == userId && e.PaymentMethodId == id
@@ -206,7 +223,13 @@ public class PaymentMethodService : IPaymentMethodService
         var funded = await _db.CardPayments
             .Where(p => p.UserId == userId && p.SourcePaymentMethodId == id)
             .SumAsync(p => (decimal?)p.Amount, ct) ?? 0m;
-        return (expMonth, expTotal, incMonth, incTotal, paidToCard, funded);
+        var exchangeIn = await _db.CurrencyExchanges
+            .Where(x => x.UserId == userId && x.ToPaymentMethodId == id)
+            .SumAsync(x => (decimal?)x.ToAmount, ct) ?? 0m;
+        var exchangeOut = await _db.CurrencyExchanges
+            .Where(x => x.UserId == userId && x.FromPaymentMethodId == id)
+            .SumAsync(x => (decimal?)x.FromAmount, ct) ?? 0m;
+        return (expMonth, expTotal, incMonth, incTotal, paidToCard, funded, exchangeIn, exchangeOut);
     }
 
     public async Task DeleteAsync(int id, CancellationToken ct = default)
@@ -288,14 +311,16 @@ public class PaymentMethodService : IPaymentMethodService
     private static PaymentMethodDto Map(
         PaymentMethod m, string baseCurrency,
         decimal spentThisMonth, decimal totalCharged, decimal receivedThisMonth, decimal totalReceived,
-        decimal totalPaidToCard, decimal totalFundedFromThis)
+        decimal totalPaidToCard, decimal totalFundedFromThis,
+        decimal exchangeIn = 0m, decimal exchangeOut = 0m)
     {
         var isCard = m.Type == PaymentMethodType.CreditCard;
         // Credit card: balance is the debt owed (charges minus payments applied to the card).
-        // Debit/cash: money in the account (income minus expenses minus card payments funded here).
+        // Debit/cash: money in the account (income minus expenses minus card payments funded here,
+        // plus money exchanged into this account and minus money exchanged out of it).
         var balance = isCard
             ? totalCharged - totalPaidToCard
-            : totalReceived - totalCharged - totalFundedFromThis;
+            : totalReceived - totalCharged - totalFundedFromThis + exchangeIn - exchangeOut;
         decimal? available = isCard && m.CreditLimit is not null ? m.CreditLimit - balance : null;
         return new PaymentMethodDto(
             m.Id, m.Name, m.Type.ToString(), m.Currency ?? baseCurrency, m.Color, m.Icon,
