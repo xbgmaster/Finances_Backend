@@ -23,9 +23,22 @@ var keyVaultUri = builder.Configuration["KeyVault:Uri"]
     ?? Environment.GetEnvironmentVariable("KEYVAULT_URI");
 if (!string.IsNullOrWhiteSpace(keyVaultUri))
 {
-    builder.Configuration.AddAzureKeyVault(
-        new Uri(keyVaultUri),
-        new DefaultAzureCredential());
+    // On Render we authenticate with an explicit Service Principal (env vars). Using
+    // ClientSecretCredential directly avoids DefaultAzureCredential probing the whole
+    // credential chain (Managed Identity / CLI / MSAL cache), which can SIGSEGV on a
+    // minimal Linux container. Locally (no SP env vars) we fall back to `az login`.
+    var tenantId = Environment.GetEnvironmentVariable("AZURE_TENANT_ID");
+    var clientId = Environment.GetEnvironmentVariable("AZURE_CLIENT_ID");
+    var clientSecret = Environment.GetEnvironmentVariable("AZURE_CLIENT_SECRET");
+
+    Azure.Core.TokenCredential credential =
+        !string.IsNullOrWhiteSpace(tenantId)
+        && !string.IsNullOrWhiteSpace(clientId)
+        && !string.IsNullOrWhiteSpace(clientSecret)
+            ? new ClientSecretCredential(tenantId, clientId, clientSecret)
+            : new DefaultAzureCredential();
+
+    builder.Configuration.AddAzureKeyVault(new Uri(keyVaultUri), credential);
 }
 
 const string CorsPolicy = "frontend";
