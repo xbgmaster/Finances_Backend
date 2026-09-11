@@ -55,4 +55,10 @@ public record UserInfoDto(
     bool OnboardingCompleted,
     string Currency);
 
-public record AuthResultDto(string Token, DateTime ExpiresAt, UserInfoDto User);
+public class RefreshRequestDto
+{
+    [Required]
+    public string RefreshToken { get; set; } = string.Empty;
+}
+
+public record AuthResultDto(string Token, DateTime ExpiresAt, string RefreshToken, UserInfoDto User);

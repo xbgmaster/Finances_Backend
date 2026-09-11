@@ -11,7 +11,12 @@ public class JwtSettings
     public string Key { get; set; } = string.Empty;
     public string Issuer { get; set; } = "FinancesApi";
     public string Audience { get; set; } = "FinancesClient";
-    public int ExpiryMinutes { get; set; } = 480;
+
+    /// <summary>Lifetime of the short-lived access token (JWT), in minutes.</summary>
+    public int ExpiryMinutes { get; set; } = 15;
+
+    /// <summary>Lifetime of a refresh token, in minutes (rotated on each use).</summary>
+    public int RefreshTokenExpiryMinutes { get; set; } = 720;
 }
 
 public class JwtTokenGenerator : IJwtTokenGenerator

@@ -1,4 +1,6 @@
 using System.Net;
+using System.Security.Cryptography;
+using System.Text;
 using Finances.Application.Common;
 using Finances.Application.Dtos;
 using Finances.Application.Services;
@@ -6,6 +8,7 @@ using Finances.Domain.Entities;
 using Finances.Infrastructure.Persistence;
 using Finances.Infrastructure.Seed;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace Finances.Infrastructure.Identity;
@@ -17,6 +20,7 @@ public class AuthService : IAuthService
 
     private readonly UserManager<ApplicationUser> _users;
     private readonly IJwtTokenGenerator _jwt;
+    private readonly JwtSettings _jwtSettings;
     private readonly FinanceDbContext _db;
     private readonly IEmailSender _email;
     private readonly AppUrls _urls;
@@ -25,6 +29,7 @@ public class AuthService : IAuthService
     public AuthService(
         UserManager<ApplicationUser> users,
         IJwtTokenGenerator jwt,
+        JwtSettings jwtSettings,
         FinanceDbContext db,
         IEmailSender email,
         AppUrls urls,
@@ -32,6 +37,7 @@ public class AuthService : IAuthService
     {
         _users = users;
         _jwt = jwt;
+        _jwtSettings = jwtSettings;
         _db = db;
         _email = email;
         _urls = urls;
@@ -66,7 +72,7 @@ public class AuthService : IAuthService
         _db.PaymentMethods.Add(PaymentMethod.DefaultCash(user.Id));
         await _db.SaveChangesAsync(ct);
 
-        return await BuildResultAsync(user);
+        return await BuildResultAsync(user, ct);
     }
 
     public async Task<AuthResultDto> LoginAsync(LoginDto dto, CancellationToken ct = default)
@@ -78,7 +84,43 @@ public class AuthService : IAuthService
         user.LastLoginAt = DateTime.UtcNow;
         await _users.UpdateAsync(user);
 
-        return await BuildResultAsync(user);
+        return await BuildResultAsync(user, ct);
+    }
+
+    public async Task<AuthResultDto> RefreshAsync(string refreshToken, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(refreshToken))
+            throw new ValidationException("Your session has expired. Please sign in again.");
+
+        var hash = HashToken(refreshToken);
+        var stored = await _db.RefreshTokens.FirstOrDefaultAsync(t => t.TokenHash == hash, ct);
+
+        // Reject unknown, already-used/revoked or expired tokens.
+        if (stored is null || !stored.IsActive)
+            throw new ValidationException("Your session has expired. Please sign in again.");
+
+        var user = await _users.FindByIdAsync(stored.UserId);
+        if (user is null)
+            throw new ValidationException("Your session has expired. Please sign in again.");
+
+        // Rotate: revoke the token just used and issue a brand new access + refresh pair.
+        stored.RevokedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync(ct);
+
+        return await BuildResultAsync(user, ct);
+    }
+
+    public async Task LogoutAsync(string refreshToken, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(refreshToken)) return;
+
+        var hash = HashToken(refreshToken);
+        var stored = await _db.RefreshTokens.FirstOrDefaultAsync(t => t.TokenHash == hash, ct);
+        if (stored is not null && stored.RevokedAt is null)
+        {
+            stored.RevokedAt = DateTime.UtcNow;
+            await _db.SaveChangesAsync(ct);
+        }
     }
 
     public async Task ForgotPasswordAsync(ForgotPasswordDto dto, CancellationToken ct = default)
@@ -144,12 +186,47 @@ public class AuthService : IAuthService
         _logger.LogInformation("Password successfully reset for {Email}.", user.Email);
     }
 
-    private async Task<AuthResultDto> BuildResultAsync(ApplicationUser user)
+    private async Task<AuthResultDto> BuildResultAsync(ApplicationUser user, CancellationToken ct = default)
     {
         var roles = await _users.GetRolesAsync(user);
         var token = _jwt.Generate(user.Id, user.Email!, roles);
+        var refresh = await IssueRefreshTokenAsync(user.Id, ct);
         var role = roles.Contains(AdminRole) ? AdminRole : UserRole;
         var info = new UserInfoDto(user.Id, user.Email!, user.FullName, role, user.OnboardingCompleted, user.Currency);
-        return new AuthResultDto(token.Token, token.ExpiresAt, info);
+        return new AuthResultDto(token.Token, token.ExpiresAt, refresh, info);
+    }
+
+    /// <summary>
+    /// Creates a new opaque refresh token, stores only its hash, and returns the raw value
+    /// for the client. Also opportunistically clears the user's expired/revoked tokens.
+    /// </summary>
+    private async Task<string> IssueRefreshTokenAsync(string userId, CancellationToken ct = default)
+    {
+        var raw = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32))
+            .Replace("+", "-").Replace("/", "_").TrimEnd('=');
+
+        var now = DateTime.UtcNow;
+        _db.RefreshTokens.Add(new RefreshToken
+        {
+            TokenHash = HashToken(raw),
+            UserId = userId,
+            ExpiresAt = now.AddMinutes(_jwtSettings.RefreshTokenExpiryMinutes),
+            CreatedAt = now
+        });
+
+        // Housekeeping: drop this user's dead tokens so the table does not grow forever.
+        var dead = await _db.RefreshTokens
+            .Where(t => t.UserId == userId && (t.RevokedAt != null || t.ExpiresAt < now))
+            .ToListAsync(ct);
+        if (dead.Count > 0) _db.RefreshTokens.RemoveRange(dead);
+
+        await _db.SaveChangesAsync(ct);
+        return raw;
+    }
+
+    private static string HashToken(string token)
+    {
+        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(token));
+        return Convert.ToHexString(bytes);
     }
 }

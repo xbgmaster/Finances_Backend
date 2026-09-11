@@ -21,6 +21,7 @@ public class FinanceDbContext : IdentityDbContext<ApplicationUser>, IFinanceDbCo
     public DbSet<CurrencyExchange> CurrencyExchanges => Set<CurrencyExchange>();
     public DbSet<PaymentMethod> PaymentMethods => Set<PaymentMethod>();
     public DbSet<CardPayment> CardPayments => Set<CardPayment>();
+    public DbSet<Identity.RefreshToken> RefreshTokens => Set<Identity.RefreshToken>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

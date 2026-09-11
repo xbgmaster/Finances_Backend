@@ -22,6 +22,17 @@ public class AuthController : ControllerBase
     public async Task<ActionResult<AuthResultDto>> Login(LoginDto dto, CancellationToken ct) =>
         Ok(await _auth.LoginAsync(dto, ct));
 
+    [HttpPost("refresh")]
+    public async Task<ActionResult<AuthResultDto>> Refresh(RefreshRequestDto dto, CancellationToken ct) =>
+        Ok(await _auth.RefreshAsync(dto.RefreshToken, ct));
+
+    [HttpPost("logout")]
+    public async Task<IActionResult> Logout(RefreshRequestDto dto, CancellationToken ct)
+    {
+        await _auth.LogoutAsync(dto.RefreshToken, ct);
+        return Ok(new { message = "Signed out." });
+    }
+
     [HttpPost("forgot-password")]
     public async Task<IActionResult> ForgotPassword(ForgotPasswordDto dto, CancellationToken ct)
     {

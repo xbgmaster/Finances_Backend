@@ -41,7 +41,8 @@ public static class DependencyInjection
             Key = configuration["Jwt:Key"] ?? throw new InvalidOperationException("Falta 'Jwt:Key'."),
             Issuer = configuration["Jwt:Issuer"] ?? "FinancesApi",
             Audience = configuration["Jwt:Audience"] ?? "FinancesClient",
-            ExpiryMinutes = int.TryParse(configuration["Jwt:ExpiryMinutes"], out var m) ? m : 480
+            ExpiryMinutes = int.TryParse(configuration["Jwt:ExpiryMinutes"], out var m) ? m : 15,
+            RefreshTokenExpiryMinutes = int.TryParse(configuration["Jwt:RefreshTokenExpiryMinutes"], out var rm) ? rm : 720
         };
         services.AddSingleton(jwt);
         services.AddSingleton<IJwtTokenGenerator, JwtTokenGenerator>();
