@@ -1,4 +1,6 @@
 using System.Text;
+using Azure.Extensions.AspNetCore.Configuration.Secrets;
+using Azure.Identity;
 using Finances.Api.Auth;
 using Finances.Api.Middleware;
 using Finances.Application;
@@ -11,6 +13,20 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Load secrets (connection string, JWT key, SMTP password) from Azure Key Vault.
+// Secret names use "--" to map to config sections, e.g. "ConnectionStrings--DefaultConnection".
+// Auth uses DefaultAzureCredential: a Service Principal via env vars on Render
+// (AZURE_TENANT_ID / AZURE_CLIENT_ID / AZURE_CLIENT_SECRET), Managed Identity on Azure,
+// or the local Azure CLI session (`az login`) during development.
+var keyVaultUri = builder.Configuration["KeyVault:Uri"]
+    ?? Environment.GetEnvironmentVariable("KEYVAULT_URI");
+if (!string.IsNullOrWhiteSpace(keyVaultUri))
+{
+    builder.Configuration.AddAzureKeyVault(
+        new Uri(keyVaultUri),
+        new DefaultAzureCredential());
+}
 
 const string CorsPolicy = "frontend";
 
