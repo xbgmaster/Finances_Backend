@@ -13,11 +13,16 @@ public class UserAdminService : IUserAdminService
 {
     private readonly UserManager<ApplicationUser> _users;
     private readonly FinanceDbContext _db;
+    private readonly ICurrentUser _current;
+    private readonly IFileStorage _storage;
 
-    public UserAdminService(UserManager<ApplicationUser> users, FinanceDbContext db)
+    public UserAdminService(
+        UserManager<ApplicationUser> users, FinanceDbContext db, ICurrentUser current, IFileStorage storage)
     {
         _users = users;
         _db = db;
+        _current = current;
+        _storage = storage;
     }
 
     public async Task<PagedResult<AdminUserDto>> GetUsersAsync(UserFilter filter, CancellationToken ct = default)
@@ -103,6 +108,54 @@ public class UserAdminService : IUserAdminService
         }
 
         return Encoding.UTF8.GetPreamble().Concat(Encoding.UTF8.GetBytes(sb.ToString())).ToArray();
+    }
+
+    public async Task DeleteUserAsync(string id, CancellationToken ct = default)
+    {
+        if (string.Equals(id, _current.UserId, StringComparison.Ordinal))
+            throw new ValidationException("You can't delete your own account.");
+
+        var user = await _users.FindByIdAsync(id) ?? throw new NotFoundException("User not found.");
+
+        var adminIds = await GetAdminIdsAsync(ct);
+        if (adminIds.Contains(user.Id))
+            throw new ValidationException("Administrator accounts can't be deleted here.");
+
+        // Files to remove from disk once the DB delete has committed successfully.
+        var receipts = await _db.Expenses
+            .Where(e => e.UserId == id && e.ReceiptUrl != null)
+            .Select(e => e.ReceiptUrl!)
+            .ToListAsync(ct);
+
+        // Delete everything the user owns in dependency order, atomically. The only
+        // restricting FK is Expense -> Category, so expenses go before categories.
+        await using var tx = await _db.Database.BeginTransactionAsync(ct);
+
+        await _db.CardPayments.Where(x => x.UserId == id).ExecuteDeleteAsync(ct);
+        await _db.Expenses.Where(x => x.UserId == id).ExecuteDeleteAsync(ct);
+        await _db.Incomes.Where(x => x.UserId == id).ExecuteDeleteAsync(ct);
+        await _db.CurrencyExchanges.Where(x => x.UserId == id).ExecuteDeleteAsync(ct);
+        await _db.CreditPayments.Where(x => x.UserId == id).ExecuteDeleteAsync(ct);
+        await _db.Credits.Where(x => x.UserId == id).ExecuteDeleteAsync(ct);
+        await _db.PaymentMethods.Where(x => x.UserId == id).ExecuteDeleteAsync(ct);
+        await _db.Categories.Where(x => x.UserId == id).ExecuteDeleteAsync(ct);
+        await _db.RefreshTokens.Where(x => x.UserId == id).ExecuteDeleteAsync(ct);
+
+        var result = await _users.DeleteAsync(user);
+        if (!result.Succeeded)
+        {
+            await tx.RollbackAsync(ct);
+            throw new ValidationException(string.Join("; ", result.Errors.Select(e => e.Description)));
+        }
+
+        await tx.CommitAsync(ct);
+
+        // Best-effort: receipts are non-critical, so a file error must not fail the request.
+        foreach (var url in receipts)
+        {
+            try { _storage.Delete(url); }
+            catch { /* ignore: DB is already consistent */ }
+        }
     }
 
     private IQueryable<ApplicationUser> ApplyFilter(

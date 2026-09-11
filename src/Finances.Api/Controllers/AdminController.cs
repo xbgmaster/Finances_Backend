@@ -30,6 +30,13 @@ public class AdminController : ControllerBase
     public async Task<ActionResult<AdminUserDto>> GetUser(string id, CancellationToken ct) =>
         Ok(await _admin.GetUserAsync(id, ct));
 
+    [HttpDelete("users/{id}")]
+    public async Task<IActionResult> DeleteUser(string id, CancellationToken ct)
+    {
+        await _admin.DeleteUserAsync(id, ct);
+        return NoContent();
+    }
+
     [HttpGet("stats")]
     public async Task<ActionResult<AdminStatsDto>> GetStats(CancellationToken ct) =>
         Ok(await _admin.GetStatsAsync(ct));
