@@ -22,6 +22,17 @@ public class ExpensesController : ControllerBase
         Ok(await _service.GetAllAsync(year, month, currency, paymentMethodId, ct));
 
     /// <summary>
+    /// Server-side paginated expenses with optional text search. Use this for large
+    /// histories so the client only fetches one page at a time.
+    /// </summary>
+    [HttpGet("paged")]
+    public async Task<ActionResult<PagedExpensesDto>> GetPaged(
+        [FromQuery] int? year, [FromQuery] int? month, [FromQuery] string? currency,
+        [FromQuery] int? paymentMethodId, [FromQuery] string? search,
+        [FromQuery] int page = 1, [FromQuery] int pageSize = 25, CancellationToken ct = default) =>
+        Ok(await _service.GetPagedAsync(year, month, currency, paymentMethodId, search, page, pageSize, ct));
+
+    /// <summary>
     /// Crea un gasto. Acepta multipart/form-data para adjuntar opcionalmente
     /// la imagen de la factura/recibo en el campo "receipt".
     /// </summary>

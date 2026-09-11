@@ -60,6 +60,15 @@ public record ExpenseDto(
     string? PaymentMethodName = null,
     string? PaymentMethodType = null);
 
+// Server-side paginated expenses. Sum is the total amount across ALL matching rows
+// (not just the current page), so the UI can show an accurate account/period subtotal.
+public record PagedExpensesDto(
+    IReadOnlyList<ExpenseDto> Items,
+    int Total,
+    int Page,
+    int PageSize,
+    decimal Sum);
+
 public class ExpenseCreateDto
 {
     [Range(0.01, double.MaxValue, ErrorMessage = "El monto debe ser mayor que cero.")]

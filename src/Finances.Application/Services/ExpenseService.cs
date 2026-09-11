@@ -54,6 +54,56 @@ public class ExpenseService : IExpenseService
             .ToListAsync(ct);
     }
 
+    public async Task<PagedExpensesDto> GetPagedAsync(
+        int? year, int? month, string? currency, int? paymentMethodId,
+        string? search, int page, int pageSize, CancellationToken ct = default)
+    {
+        var userId = _current.RequireUserId();
+        var baseCurrency = (await _profile.GetAsync(ct)).Currency;
+
+        page = page < 1 ? 1 : page;
+        pageSize = pageSize is < 1 or > 200 ? 25 : pageSize;
+
+        var query = _db.Expenses.Include(e => e.Category).Where(e => e.UserId == userId);
+        if (year is not null) query = query.Where(e => e.Date.Year == year);
+        if (month is not null) query = query.Where(e => e.Date.Month == month);
+        if (paymentMethodId is not null) query = query.Where(e => e.PaymentMethodId == paymentMethodId);
+        if (!string.IsNullOrWhiteSpace(currency))
+        {
+            var cur = currency.Trim().ToUpperInvariant();
+            query = cur == baseCurrency.ToUpperInvariant()
+                ? query.Where(e => e.Currency == null || e.Currency == cur)
+                : query.Where(e => e.Currency == cur);
+        }
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            // Case-insensitive contains, translated by EF to a SQL LOWER(...) LIKE.
+            // Kept provider-agnostic (no Npgsql ILike) so it lives in the Application layer.
+            var term = search.Trim().ToLower();
+            query = query.Where(e =>
+                e.Description.ToLower().Contains(term) ||
+                e.Category!.Name.ToLower().Contains(term));
+        }
+
+        var total = await query.CountAsync(ct);
+        var sum = total == 0 ? 0m : await query.SumAsync(e => e.Amount, ct);
+        var items = await query
+            .OrderByDescending(e => e.Date)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(e => new ExpenseDto(
+                e.Id, e.Amount, e.Description, e.Date,
+                e.CategoryId, e.Category!.Name, e.Category.Icon, e.Category.Color,
+                e.ReceiptUrl, e.Currency ?? baseCurrency,
+                e.CreditPayment != null ? e.CreditPayment.CreditId : (int?)null,
+                e.PaymentMethodId,
+                e.PaymentMethod != null ? e.PaymentMethod.Name : null,
+                e.PaymentMethod != null ? e.PaymentMethod.Type.ToString() : null))
+            .ToListAsync(ct);
+
+        return new PagedExpensesDto(items, total, page, pageSize, sum);
+    }
+
     public async Task<ExpenseDto> CreateAsync(ExpenseCreateDto dto, FileUpload? receipt, CancellationToken ct = default)
     {
         var userId = _current.RequireUserId();
