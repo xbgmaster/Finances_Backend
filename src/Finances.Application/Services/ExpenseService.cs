@@ -55,7 +55,7 @@ public class ExpenseService : IExpenseService
     }
 
     public async Task<PagedExpensesDto> GetPagedAsync(
-        int? year, int? month, string? currency, int? paymentMethodId,
+        int? year, int? month, string? currency, int? paymentMethodId, int? categoryId,
         string? search, int page, int pageSize, CancellationToken ct = default)
     {
         var userId = _current.RequireUserId();
@@ -68,6 +68,7 @@ public class ExpenseService : IExpenseService
         if (year is not null) query = query.Where(e => e.Date.Year == year);
         if (month is not null) query = query.Where(e => e.Date.Month == month);
         if (paymentMethodId is not null) query = query.Where(e => e.PaymentMethodId == paymentMethodId);
+        if (categoryId is not null) query = query.Where(e => e.CategoryId == categoryId);
         if (!string.IsNullOrWhiteSpace(currency))
         {
             var cur = currency.Trim().ToUpperInvariant();

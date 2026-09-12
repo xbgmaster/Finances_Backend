@@ -9,8 +9,11 @@ namespace Finances.Domain.Entities;
 /// </summary>
 public class PaymentMethod
 {
-    /// <summary>Name of the built-in cash account seeded for every user.</summary>
-    public const string DefaultCashName = "Efectivo";
+    /// <summary>
+    /// Canonical name of the built-in cash account seeded for every user. Kept as a
+    /// language-neutral key ("Cash"); the UI localizes it for display (see accountLabel).
+    /// </summary>
+    public const string DefaultCashName = "Cash";
 
     /// <summary>
     /// Default cash account created for each user so an expense always has a method to pick
