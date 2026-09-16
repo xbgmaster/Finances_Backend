@@ -3,12 +3,12 @@
   "WorkspaceRootPath": "C:\\Users\\aleja\\OneDrive\\Desktop\\Finances\\finances-backend\\Finances_Backend\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{CE644BFE-F283-45D4-91B3-56559EF17DBD}|src\\Finances.Api\\Finances.Api.csproj|c:\\users\\aleja\\onedrive\\desktop\\finances\\finances-backend\\finances_backend\\src\\finances.api\\appsettings.development.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
-      "RelativeMoniker": "D:0:0:{CE644BFE-F283-45D4-91B3-56559EF17DBD}|src\\Finances.Api\\Finances.Api.csproj|solutionrelative:src\\finances.api\\appsettings.development.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
-    },
-    {
       "AbsoluteMoniker": "D:0:0:{CE644BFE-F283-45D4-91B3-56559EF17DBD}|src\\Finances.Api\\Finances.Api.csproj|c:\\users\\aleja\\onedrive\\desktop\\finances\\finances-backend\\finances_backend\\src\\finances.api\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{CE644BFE-F283-45D4-91B3-56559EF17DBD}|src\\Finances.Api\\Finances.Api.csproj|solutionrelative:src\\finances.api\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{CE644BFE-F283-45D4-91B3-56559EF17DBD}|src\\Finances.Api\\Finances.Api.csproj|c:\\users\\aleja\\onedrive\\desktop\\finances\\finances-backend\\finances_backend\\src\\finances.api\\appsettings.development.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{CE644BFE-F283-45D4-91B3-56559EF17DBD}|src\\Finances.Api\\Finances.Api.csproj|solutionrelative:src\\finances.api\\appsettings.development.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{CE644BFE-F283-45D4-91B3-56559EF17DBD}|src\\Finances.Api\\Finances.Api.csproj|c:\\users\\aleja\\onedrive\\desktop\\finances\\finances-backend\\finances_backend\\src\\finances.api\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
@@ -34,7 +34,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 8,
+          "SelectedChildIndex": 3,
           "Children": [
             {
               "$type": "Bookmark",
@@ -50,15 +50,16 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 0,
               "Title": "Program.cs",
               "DocumentMoniker": "C:\\Users\\aleja\\OneDrive\\Desktop\\Finances\\finances-backend\\Finances_Backend\\src\\Finances.Api\\Program.cs",
               "RelativeDocumentMoniker": "src\\Finances.Api\\Program.cs",
               "ToolTip": "C:\\Users\\aleja\\OneDrive\\Desktop\\Finances\\finances-backend\\Finances_Backend\\src\\Finances.Api\\Program.cs",
               "RelativeToolTip": "src\\Finances.Api\\Program.cs",
-              "ViewState": "AgIAABgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAAB0AAAAAAAAAAAAgwDoAAAA/AAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-09-11T06:23:37.267Z"
+              "WhenOpened": "2026-09-11T06:23:37.267Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
@@ -110,16 +111,15 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 0,
+              "DocumentIndex": 1,
               "Title": "appsettings.Development.json",
               "DocumentMoniker": "C:\\Users\\aleja\\OneDrive\\Desktop\\Finances\\finances-backend\\Finances_Backend\\src\\Finances.Api\\appsettings.Development.json",
               "RelativeDocumentMoniker": "src\\Finances.Api\\appsettings.Development.json",
               "ToolTip": "C:\\Users\\aleja\\OneDrive\\Desktop\\Finances\\finances-backend\\Finances_Backend\\src\\Finances.Api\\appsettings.Development.json",
               "RelativeToolTip": "src\\Finances.Api\\appsettings.Development.json",
-              "ViewState": "AgIAAAwAAAAAAAAAAAAAAB0AAAAQAAAAAAAAAA==",
+              "ViewState": "AgIAAAwAAAAAAAAAAAAAABsAAAAMAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
-              "WhenOpened": "2026-08-01T03:18:33.576Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-08-01T03:18:33.576Z"
             }
           ]
         }

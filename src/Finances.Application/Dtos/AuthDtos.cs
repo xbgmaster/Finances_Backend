@@ -53,7 +53,8 @@ public record UserInfoDto(
     string? FullName,
     string Role,
     bool OnboardingCompleted,
-    string Currency);
+    string Currency,
+    IReadOnlyList<string> DisabledFeatures);
 
 public class RefreshRequestDto
 {

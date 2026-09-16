@@ -3,6 +3,7 @@ using System;
 using Finances.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Finances.Infrastructure.Migrations
 {
     [DbContext(typeof(FinanceDbContext))]
-    partial class FinanceDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260915043251_AddWorkShifts")]
+    partial class AddWorkShifts
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -446,15 +449,8 @@ namespace Finances.Infrastructure.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
 
-                    b.Property<DateTime?>("AnchorDate")
-                        .HasColumnType("timestamp without time zone");
-
                     b.Property<bool>("AutoPost")
                         .HasColumnType("boolean");
-
-                    b.Property<string>("Color")
-                        .HasMaxLength(9)
-                        .HasColumnType("character varying(9)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp without time zone");
@@ -472,24 +468,18 @@ namespace Finances.Infrastructure.Migrations
                         .HasColumnType("numeric(18,2)");
 
                     b.Property<string>("LastPostedPeriod")
-                        .HasMaxLength(8)
-                        .HasColumnType("character varying(8)");
+                        .HasMaxLength(6)
+                        .HasColumnType("character varying(6)");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(120)
                         .HasColumnType("character varying(120)");
 
-                    b.Property<int>("PayFrequency")
-                        .HasColumnType("integer");
-
                     b.Property<int>("PayType")
                         .HasColumnType("integer");
 
                     b.Property<int?>("PaymentMethodId")
-                        .HasColumnType("integer");
-
-                    b.Property<int?>("SecondDayOfMonth")
                         .HasColumnType("integer");
 
                     b.Property<string>("UserId")

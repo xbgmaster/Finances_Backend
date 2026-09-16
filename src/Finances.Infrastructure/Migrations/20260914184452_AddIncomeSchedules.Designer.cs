@@ -3,6 +3,7 @@ using System;
 using Finances.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Finances.Infrastructure.Migrations
 {
     [DbContext(typeof(FinanceDbContext))]
-    partial class FinanceDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260914184452_AddIncomeSchedules")]
+    partial class AddIncomeSchedules
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -446,15 +449,8 @@ namespace Finances.Infrastructure.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
 
-                    b.Property<DateTime?>("AnchorDate")
-                        .HasColumnType("timestamp without time zone");
-
                     b.Property<bool>("AutoPost")
                         .HasColumnType("boolean");
-
-                    b.Property<string>("Color")
-                        .HasMaxLength(9)
-                        .HasColumnType("character varying(9)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp without time zone");
@@ -467,29 +463,16 @@ namespace Finances.Infrastructure.Migrations
                     b.Property<int>("DayOfMonth")
                         .HasColumnType("integer");
 
-                    b.Property<decimal?>("HourlyRate")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
                     b.Property<string>("LastPostedPeriod")
-                        .HasMaxLength(8)
-                        .HasColumnType("character varying(8)");
+                        .HasMaxLength(6)
+                        .HasColumnType("character varying(6)");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(120)
                         .HasColumnType("character varying(120)");
 
-                    b.Property<int>("PayFrequency")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("PayType")
-                        .HasColumnType("integer");
-
                     b.Property<int?>("PaymentMethodId")
-                        .HasColumnType("integer");
-
-                    b.Property<int?>("SecondDayOfMonth")
                         .HasColumnType("integer");
 
                     b.Property<string>("UserId")
@@ -571,59 +554,6 @@ namespace Finances.Infrastructure.Migrations
                     b.ToTable("PaymentMethods");
                 });
 
-            modelBuilder.Entity("Finances.Domain.Entities.WorkShift", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<decimal>("Amount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("Currency")
-                        .IsRequired()
-                        .HasMaxLength(3)
-                        .HasColumnType("character varying(3)");
-
-                    b.Property<DateTime>("Date")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<decimal>("HourlyRate")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<decimal>("Hours")
-                        .HasPrecision(9, 2)
-                        .HasColumnType("numeric(9,2)");
-
-                    b.Property<int?>("IncomeId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("IncomeScheduleId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasMaxLength(450)
-                        .HasColumnType("character varying(450)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("IncomeId");
-
-                    b.HasIndex("IncomeScheduleId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("WorkShifts");
-                });
-
             modelBuilder.Entity("Finances.Infrastructure.Identity.ApplicationUser", b =>
                 {
                     b.Property<string>("Id")
@@ -644,9 +574,6 @@ namespace Finances.Infrastructure.Migrations
 
                     b.Property<string>("Currency")
                         .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("DisabledFeatures")
                         .HasColumnType("text");
 
                     b.Property<string>("Email")
@@ -1035,30 +962,6 @@ namespace Finances.Infrastructure.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-                });
-
-            modelBuilder.Entity("Finances.Domain.Entities.WorkShift", b =>
-                {
-                    b.HasOne("Finances.Domain.Entities.Income", "Income")
-                        .WithMany()
-                        .HasForeignKey("IncomeId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("Finances.Domain.Entities.IncomeSchedule", "IncomeSchedule")
-                        .WithMany()
-                        .HasForeignKey("IncomeScheduleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Finances.Infrastructure.Identity.ApplicationUser", null)
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Income");
-
-                    b.Navigation("IncomeSchedule");
                 });
 
             modelBuilder.Entity("Finances.Infrastructure.Identity.RefreshToken", b =>

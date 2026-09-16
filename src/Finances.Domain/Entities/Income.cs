@@ -20,6 +20,13 @@ public class Income
     public int? PaymentMethodId { get; set; }
     public PaymentMethod? PaymentMethod { get; set; }
 
+    /// <summary>
+    /// When set, this income was posted automatically by a recurring <see cref="IncomeSchedule"/>.
+    /// Kept for traceability; deleting the schedule just nulls this link.
+    /// </summary>
+    public int? IncomeScheduleId { get; set; }
+    public IncomeSchedule? IncomeSchedule { get; set; }
+
     /// <summary>Propietario del ingreso (Identity user id).</summary>
     public string UserId { get; set; } = string.Empty;
 }

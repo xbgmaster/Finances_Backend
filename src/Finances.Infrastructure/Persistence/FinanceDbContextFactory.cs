@@ -11,6 +11,10 @@ public class FinanceDbContextFactory : IDesignTimeDbContextFactory<FinanceDbCont
 {
     public FinanceDbContext CreateDbContext(string[] args)
     {
+        // Match the runtime mapping (see AddInfrastructure): map DateTime to
+        // 'timestamp without time zone' so design-time migrations don't drift.
+        AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
         var conn = Environment.GetEnvironmentVariable("FINANCES_CONNECTION")
             ?? "Host=localhost;Port=5432;Database=finances;Username=postgres;Password=postgres";
 

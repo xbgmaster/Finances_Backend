@@ -53,6 +53,19 @@ public class UserAdminService : IUserAdminService
         return Map(user, adminIds, counts);
     }
 
+    public async Task<AdminUserDto> SetUserFeaturesAsync(string id, IReadOnlyList<string> disabledFeatures, CancellationToken ct = default)
+    {
+        var user = await _users.FindByIdAsync(id) ?? throw new NotFoundException("User not found.");
+        user.DisabledFeatures = FeatureFlags.Serialize(disabledFeatures);
+        var result = await _users.UpdateAsync(user);
+        if (!result.Succeeded)
+            throw new ValidationException(string.Join(" ", result.Errors.Select(e => e.Description)));
+
+        var adminIds = await GetAdminIdsAsync(ct);
+        var counts = await ExpenseCountsAsync(new[] { user.Id }, ct);
+        return Map(user, adminIds, counts);
+    }
+
     public async Task<AdminStatsDto> GetStatsAsync(CancellationToken ct = default)
     {
         var now = DateTime.UtcNow;
@@ -219,7 +232,8 @@ public class UserAdminService : IUserAdminService
         var role = adminIds.Contains(u.Id) ? AuthService.AdminRole : AuthService.UserRole;
         return new AdminUserDto(
             u.Id, u.Email ?? string.Empty, u.FullName, role, u.Country, u.Currency,
-            u.OnboardingCompleted, u.CreatedAt, u.LastLoginAt, expenseCount.GetValueOrDefault(u.Id));
+            u.OnboardingCompleted, u.CreatedAt, u.LastLoginAt, expenseCount.GetValueOrDefault(u.Id),
+            Finances.Application.Common.FeatureFlags.Parse(u.DisabledFeatures));
     }
 
     private static string Csv(string? value)

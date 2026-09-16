@@ -4,7 +4,8 @@ namespace Finances.Application.Dtos;
 
 public record IncomeDto(
     int Id, decimal Amount, string Description, DateTime Date, string Currency,
-    int? PaymentMethodId = null, string? PaymentMethodName = null, string? PaymentMethodType = null);
+    int? PaymentMethodId = null, string? PaymentMethodName = null, string? PaymentMethodType = null,
+    int? IncomeScheduleId = null);
 
 public class IncomeCreateDto
 {
@@ -40,6 +41,12 @@ public class IncomeUpdateDto
 
     /// <summary>Account / payment method the income landed in (optional).</summary>
     public int? PaymentMethodId { get; set; }
+
+    /// <summary>
+    /// Job (income schedule) to attribute this income to. When null the current attribution is kept,
+    /// so callers that don't manage jobs (Expenses/Dashboard) don't detach it accidentally.
+    /// </summary>
+    public int? IncomeScheduleId { get; set; }
 }
 
 public record ExpenseDto(

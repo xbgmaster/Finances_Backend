@@ -25,6 +25,7 @@ public class PaymentMethodService : IPaymentMethodService
         var now = DateTime.UtcNow;
 
         await EnsureDefaultCashAsync(userId, ct);
+        await MergeDefaultCashDuplicatesAsync(userId, baseCurrency, ct);
 
         var methods = await _db.PaymentMethods
             .Where(p => p.UserId == userId)
@@ -197,6 +198,83 @@ public class PaymentMethodService : IPaymentMethodService
         if (hasAny) return;
         _db.PaymentMethods.Add(PaymentMethod.DefaultCash(userId));
         await _db.SaveChangesAsync(ct);
+    }
+
+    /// <summary>
+    /// Heals historical data: collapses duplicate built-in "Cash" accounts into a single one per
+    /// currency and repoints every reference to the survivor. These duplicates were created before a
+    /// null-currency base account was recognized by the currency checks. Only auto-created cash
+    /// accounts (canonical/localized "Cash"/"Efectivo") are merged; user-named accounts (e.g.
+    /// "Personal") are never touched. Idempotent and cheap once there is nothing to merge.
+    /// </summary>
+    private async Task MergeDefaultCashDuplicatesAsync(string userId, string baseCurrency, CancellationToken ct)
+    {
+        var defaultNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            PaymentMethod.DefaultCashName, "Cash", "Efectivo",
+        };
+
+        var cashes = await _db.PaymentMethods
+            .Where(p => p.UserId == userId && p.Type == PaymentMethodType.Cash)
+            .ToListAsync(ct);
+
+        string Eff(PaymentMethod p) => (p.Currency ?? baseCurrency).ToUpperInvariant();
+
+        var groups = cashes
+            .Where(p => defaultNames.Contains(p.Name))
+            .GroupBy(Eff)
+            .Where(g => g.Count() > 1)
+            .ToList();
+        if (groups.Count == 0) return;
+
+        foreach (var group in groups)
+        {
+            // Keep the favorite, then the base (null-currency) account, then the oldest.
+            var keeper = group
+                .OrderByDescending(p => p.IsFavorite)
+                .ThenBy(p => p.Currency == null ? 0 : 1)
+                .ThenBy(p => p.Id)
+                .First();
+            keeper.Currency = Eff(keeper); // pin an explicit currency so the ambiguity can't return
+            var dups = group.Where(p => p.Id != keeper.Id).ToList();
+            var dupIds = dups.Select(p => p.Id).ToList();
+
+            // Repoint every reference from the duplicates to the survivor (tracked updates so we
+            // stay on the EF Core abstractions the Application layer depends on).
+            var expenses = await _db.Expenses
+                .Where(e => e.UserId == userId && e.PaymentMethodId != null && dupIds.Contains(e.PaymentMethodId.Value))
+                .ToListAsync(ct);
+            foreach (var e in expenses) e.PaymentMethodId = keeper.Id;
+
+            var incomes = await _db.Incomes
+                .Where(i => i.UserId == userId && i.PaymentMethodId != null && dupIds.Contains(i.PaymentMethodId.Value))
+                .ToListAsync(ct);
+            foreach (var i in incomes) i.PaymentMethodId = keeper.Id;
+
+            var schedules = await _db.IncomeSchedules
+                .Where(x => x.UserId == userId && x.PaymentMethodId != null && dupIds.Contains(x.PaymentMethodId.Value))
+                .ToListAsync(ct);
+            foreach (var s in schedules) s.PaymentMethodId = keeper.Id;
+
+            var cardPayments = await _db.CardPayments
+                .Where(x => x.UserId == userId && x.SourcePaymentMethodId != null && dupIds.Contains(x.SourcePaymentMethodId.Value))
+                .ToListAsync(ct);
+            foreach (var c in cardPayments) c.SourcePaymentMethodId = keeper.Id;
+
+            var exchanges = await _db.CurrencyExchanges
+                .Where(x => x.UserId == userId
+                    && ((x.FromPaymentMethodId != null && dupIds.Contains(x.FromPaymentMethodId.Value))
+                        || (x.ToPaymentMethodId != null && dupIds.Contains(x.ToPaymentMethodId.Value))))
+                .ToListAsync(ct);
+            foreach (var x in exchanges)
+            {
+                if (x.FromPaymentMethodId != null && dupIds.Contains(x.FromPaymentMethodId.Value)) x.FromPaymentMethodId = keeper.Id;
+                if (x.ToPaymentMethodId != null && dupIds.Contains(x.ToPaymentMethodId.Value)) x.ToPaymentMethodId = keeper.Id;
+            }
+
+            _db.PaymentMethods.RemoveRange(dups);
+        }
+        await _db.SaveChangesAsync(ct); // one atomic save: repoints, pinned currency and deletions
     }
 
     private async Task<(decimal expMonth, decimal expTotal, decimal incMonth, decimal incTotal,

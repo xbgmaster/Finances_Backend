@@ -15,4 +15,10 @@ public interface IUserAdminService
     /// Guards against deleting yourself or another administrator.
     /// </summary>
     Task DeleteUserAsync(string id, CancellationToken ct = default);
+
+    /// <summary>
+    /// Sets the per-user feature blocklist (the modules the user is NOT allowed to see).
+    /// Front-end hides the matching menu items and routes; enables future subscription tiers.
+    /// </summary>
+    Task<AdminUserDto> SetUserFeaturesAsync(string id, IReadOnlyList<string> disabledFeatures, CancellationToken ct = default);
 }

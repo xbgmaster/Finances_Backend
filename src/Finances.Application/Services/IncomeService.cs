@@ -36,7 +36,8 @@ public class IncomeService : IIncomeService
                 i.Id, i.Amount, i.Description, i.Date, i.Currency ?? baseCurrency,
                 i.PaymentMethodId,
                 i.PaymentMethod != null ? i.PaymentMethod.Name : null,
-                i.PaymentMethod != null ? i.PaymentMethod.Type.ToString() : null))
+                i.PaymentMethod != null ? i.PaymentMethod.Type.ToString() : null,
+                i.IncomeScheduleId))
             .ToListAsync(ct);
     }
 
@@ -91,6 +92,16 @@ public class IncomeService : IIncomeService
                 ?? throw new NotFoundException("El medio de pago indicado no existe.");
         }
 
+        // Reassign the job only when a value is sent; otherwise keep the current attribution
+        // (Expenses/Dashboard edits don't send this and must not detach the income from its job).
+        if (dto.IncomeScheduleId is not null)
+        {
+            var scheduleExists = await _db.IncomeSchedules
+                .AnyAsync(s => s.Id == dto.IncomeScheduleId && s.UserId == userId, ct);
+            if (!scheduleExists) throw new NotFoundException("El trabajo indicado no existe.");
+            income.IncomeScheduleId = dto.IncomeScheduleId;
+        }
+
         income.Amount = dto.Amount;
         income.Description = dto.Description?.Trim() ?? string.Empty;
         income.Date = dto.Date ?? income.Date;
@@ -100,7 +111,8 @@ public class IncomeService : IIncomeService
 
         return new IncomeDto(
             income.Id, income.Amount, income.Description, income.Date, income.Currency ?? baseCurrency,
-            paymentMethod?.Id, paymentMethod?.Name, paymentMethod?.Type.ToString());
+            paymentMethod?.Id, paymentMethod?.Name, paymentMethod?.Type.ToString(),
+            income.IncomeScheduleId);
     }
 
     public async Task DeleteAsync(int id, CancellationToken ct = default)

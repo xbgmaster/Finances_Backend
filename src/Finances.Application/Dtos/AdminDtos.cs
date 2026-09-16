@@ -10,7 +10,10 @@ public record AdminUserDto(
     bool OnboardingCompleted,
     DateTime CreatedAt,
     DateTime? LastLoginAt,
-    int ExpenseCount);
+    int ExpenseCount,
+    IReadOnlyList<string> DisabledFeatures);
+
+public record UpdateUserFeaturesDto(IReadOnlyList<string> DisabledFeatures);
 
 public record PagedResult<T>(IReadOnlyList<T> Items, int Total, int Page, int PageSize);
 

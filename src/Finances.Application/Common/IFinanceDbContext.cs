@@ -11,6 +11,8 @@ public interface IFinanceDbContext
 {
     DbSet<Category> Categories { get; }
     DbSet<Income> Incomes { get; }
+    DbSet<IncomeSchedule> IncomeSchedules { get; }
+    DbSet<WorkShift> WorkShifts { get; }
     DbSet<Expense> Expenses { get; }
     DbSet<Credit> Credits { get; }
     DbSet<CreditPayment> CreditPayments { get; }

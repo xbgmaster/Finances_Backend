@@ -27,6 +27,7 @@ public static class DependencyInjection
         // Legacy service-layer features (not yet migrated to CQRS).
         services.AddScoped<ICategoryService, CategoryService>();
         services.AddScoped<IIncomeService, IncomeService>();
+        services.AddScoped<IIncomeScheduleService, IncomeScheduleService>();
         services.AddScoped<IExpenseService, ExpenseService>();
         services.AddScoped<IPaymentMethodService, PaymentMethodService>();
         services.AddScoped<IBalanceService, BalanceService>();

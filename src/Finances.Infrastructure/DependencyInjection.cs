@@ -104,6 +104,17 @@ public static class DependencyInjection
         if (reminders.Enabled)
             services.AddHostedService<CreditReminderService>();
 
+        // Background job that auto-posts recurring incomes ("jobs") on each monthly pay day.
+        var autoPost = new Scheduling.IncomeAutoPostOptions
+        {
+            Enabled = !bool.TryParse(configuration["IncomeAutoPost:Enabled"], out var ae) || ae,
+            CheckEveryHours = double.TryParse(configuration["IncomeAutoPost:CheckEveryHours"], out var ah) ? ah : 6,
+            StartupDelaySeconds = double.TryParse(configuration["IncomeAutoPost:StartupDelaySeconds"], out var asd) ? asd : 45,
+        };
+        services.AddSingleton(autoPost);
+        if (autoPost.Enabled)
+            services.AddHostedService<Scheduling.IncomeAutoPostService>();
+
         return services;
     }
 }

@@ -15,6 +15,8 @@ public class FinanceDbContext : IdentityDbContext<ApplicationUser>, IFinanceDbCo
 
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<Income> Incomes => Set<Income>();
+    public DbSet<IncomeSchedule> IncomeSchedules => Set<IncomeSchedule>();
+    public DbSet<WorkShift> WorkShifts => Set<WorkShift>();
     public DbSet<Expense> Expenses => Set<Expense>();
     public DbSet<Credit> Credits => Set<Credit>();
     public DbSet<CreditPayment> CreditPayments => Set<CreditPayment>();

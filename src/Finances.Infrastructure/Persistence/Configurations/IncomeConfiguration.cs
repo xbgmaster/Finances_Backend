@@ -26,5 +26,12 @@ public class IncomeConfiguration : IEntityTypeConfiguration<Income>
             .HasForeignKey(i => i.PaymentMethodId)
             .OnDelete(DeleteBehavior.SetNull);
         builder.HasIndex(i => i.PaymentMethodId);
+
+        // Optional link to the recurring schedule that posted this income (traceability).
+        builder.HasOne(i => i.IncomeSchedule)
+            .WithMany()
+            .HasForeignKey(i => i.IncomeScheduleId)
+            .OnDelete(DeleteBehavior.SetNull);
+        builder.HasIndex(i => i.IncomeScheduleId);
     }
 }
