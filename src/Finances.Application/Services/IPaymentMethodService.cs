@@ -12,6 +12,7 @@ public interface IPaymentMethodService
     Task DeleteAsync(int id, CancellationToken ct = default);
 
     Task<CardPaymentDto> PayCardAsync(int cardId, CardPaymentCreateDto dto, CancellationToken ct = default);
+    Task<CardPaymentDto> UpdateCardPaymentAsync(int paymentId, CardPaymentCreateDto dto, CancellationToken ct = default);
     Task<IReadOnlyList<CardPaymentDto>> GetCardPaymentsAsync(int cardId, CancellationToken ct = default);
     Task DeleteCardPaymentAsync(int paymentId, CancellationToken ct = default);
 }

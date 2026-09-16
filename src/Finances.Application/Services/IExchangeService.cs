@@ -6,5 +6,6 @@ public interface IExchangeService
 {
     Task<IReadOnlyList<ExchangeDto>> GetAllAsync(CancellationToken ct = default);
     Task<ExchangeDto> CreateAsync(ExchangeCreateDto dto, CancellationToken ct = default);
+    Task<ExchangeDto> UpdateAsync(int id, ExchangeCreateDto dto, CancellationToken ct = default);
     Task DeleteAsync(int id, CancellationToken ct = default);
 }

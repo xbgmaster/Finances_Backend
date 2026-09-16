@@ -115,6 +115,41 @@ public class ExchangeService : IExchangeService
         return cash;
     }
 
+    public async Task<ExchangeDto> UpdateAsync(int id, ExchangeCreateDto dto, CancellationToken ct = default)
+    {
+        var userId = _current.RequireUserId();
+        var baseCurrency = (await _profile.GetAsync(ct)).Currency;
+        var exchange = await _db.CurrencyExchanges.FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId, ct)
+            ?? throw new NotFoundException("El cambio de divisa no existe.");
+
+        var from = dto.FromCurrency.Trim().ToUpperInvariant();
+        var to = dto.ToCurrency.Trim().ToUpperInvariant();
+        if (from == to)
+            throw new ValidationException("Las monedas de origen y destino deben ser diferentes.");
+
+        var rate = dto.FromAmount > 0 ? Math.Round(dto.ToAmount / dto.FromAmount, 6) : 0m;
+
+        var fromAccount = await ResolveAccountAsync(dto.FromPaymentMethodId, from, baseCurrency, userId, createIfMissing: false, ct);
+        var toAccount = await ResolveAccountAsync(dto.ToPaymentMethodId, to, baseCurrency, userId, createIfMissing: true, ct);
+
+        exchange.Date = dto.Date ?? exchange.Date;
+        exchange.FromCurrency = from;
+        exchange.FromAmount = dto.FromAmount;
+        exchange.ToCurrency = to;
+        exchange.ToAmount = dto.ToAmount;
+        exchange.Rate = rate;
+        exchange.Note = string.IsNullOrWhiteSpace(dto.Note) ? null : dto.Note.Trim();
+        exchange.FromPaymentMethod = fromAccount;   // nav assignment lets EF fix up the FK
+        exchange.ToPaymentMethod = toAccount;
+        if (fromAccount is null) exchange.FromPaymentMethodId = null;
+        await _db.SaveChangesAsync(ct);
+
+        return new ExchangeDto(
+            exchange.Id, exchange.Date, exchange.FromCurrency, exchange.FromAmount,
+            exchange.ToCurrency, exchange.ToAmount, exchange.Rate, exchange.Note,
+            fromAccount?.Id, fromAccount?.Name, toAccount?.Id, toAccount?.Name);
+    }
+
     public async Task DeleteAsync(int id, CancellationToken ct = default)
     {
         var userId = _current.RequireUserId();

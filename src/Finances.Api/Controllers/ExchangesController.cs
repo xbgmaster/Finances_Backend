@@ -22,6 +22,10 @@ public class ExchangesController : ControllerBase
     public async Task<ActionResult<ExchangeDto>> Create(ExchangeCreateDto dto, CancellationToken ct) =>
         Ok(await _service.CreateAsync(dto, ct));
 
+    [HttpPut("{id:int}")]
+    public async Task<ActionResult<ExchangeDto>> Update(int id, ExchangeCreateDto dto, CancellationToken ct) =>
+        Ok(await _service.UpdateAsync(id, dto, ct));
+
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id, CancellationToken ct)
     {

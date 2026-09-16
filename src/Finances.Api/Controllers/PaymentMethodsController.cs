@@ -57,6 +57,10 @@ public class PaymentMethodsController : ControllerBase
     public async Task<ActionResult<CardPaymentDto>> PayCard(int id, CardPaymentCreateDto dto, CancellationToken ct) =>
         Ok(await _service.PayCardAsync(id, dto, ct));
 
+    [HttpPut("{id:int}/payments/{paymentId:int}")]
+    public async Task<ActionResult<CardPaymentDto>> UpdatePayment(int id, int paymentId, CardPaymentCreateDto dto, CancellationToken ct) =>
+        Ok(await _service.UpdateCardPaymentAsync(paymentId, dto, ct));
+
     [HttpDelete("{id:int}/payments/{paymentId:int}")]
     public async Task<IActionResult> DeletePayment(int id, int paymentId, CancellationToken ct)
     {
