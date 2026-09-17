@@ -36,12 +36,17 @@ public class PaymentMethodService : IPaymentMethodService
         if (methods.Count == 0) return new List<PaymentMethodDto>();
 
         var ids = methods.Select(m => m.Id).ToList();
+        // Each account is single-currency; only same-currency movements affect its balance/totals.
+        var currencyById = methods.ToDictionary(m => m.Id, m => (m.Currency ?? baseCurrency).ToUpperInvariant());
+
+        // Group also by currency so foreign-currency rows attributed to an account can be dropped.
         var expenseAgg = await _db.Expenses
             .Where(e => e.UserId == userId && e.PaymentMethodId != null && ids.Contains(e.PaymentMethodId.Value))
-            .GroupBy(e => e.PaymentMethodId!.Value)
+            .GroupBy(e => new { Pm = e.PaymentMethodId!.Value, e.Currency })
             .Select(g => new
             {
-                Id = g.Key,
+                g.Key.Pm,
+                g.Key.Currency,
                 Total = g.Sum(x => x.Amount),
                 Month = g.Where(x => x.Date.Year == now.Year && x.Date.Month == now.Month).Sum(x => x.Amount)
             })
@@ -49,14 +54,32 @@ public class PaymentMethodService : IPaymentMethodService
 
         var incomeAgg = await _db.Incomes
             .Where(i => i.UserId == userId && i.PaymentMethodId != null && ids.Contains(i.PaymentMethodId.Value))
-            .GroupBy(i => i.PaymentMethodId!.Value)
+            .GroupBy(i => new { Pm = i.PaymentMethodId!.Value, i.Currency })
             .Select(g => new
             {
-                Id = g.Key,
+                g.Key.Pm,
+                g.Key.Currency,
                 Total = g.Sum(x => x.Amount),
                 Month = g.Where(x => x.Date.Year == now.Year && x.Date.Month == now.Month).Sum(x => x.Amount)
             })
             .ToListAsync(ct);
+
+        var expenseById = new Dictionary<int, (decimal Month, decimal Total)>();
+        foreach (var g in expenseAgg)
+        {
+            var eff = (g.Currency ?? baseCurrency).ToUpperInvariant();
+            if (!currencyById.TryGetValue(g.Pm, out var cur) || eff != cur) continue;
+            var acc = expenseById.GetValueOrDefault(g.Pm);
+            expenseById[g.Pm] = (acc.Month + g.Month, acc.Total + g.Total);
+        }
+        var incomeById = new Dictionary<int, (decimal Month, decimal Total)>();
+        foreach (var g in incomeAgg)
+        {
+            var eff = (g.Currency ?? baseCurrency).ToUpperInvariant();
+            if (!currencyById.TryGetValue(g.Pm, out var cur) || eff != cur) continue;
+            var acc = incomeById.GetValueOrDefault(g.Pm);
+            incomeById[g.Pm] = (acc.Month + g.Month, acc.Total + g.Total);
+        }
 
         // Payments applied TO each credit card (reduce its debt / free cupo).
         var paidToCardAgg = await _db.CardPayments
@@ -76,7 +99,6 @@ public class PaymentMethodService : IPaymentMethodService
         // Currency exchanges that landed IN / left FROM each account. Only the leg whose currency
         // matches the account counts, so a transfer to/from a different-currency account never
         // inflates this account's balance (e.g. a COP amount landing in a CAD account).
-        var currencyById = methods.ToDictionary(m => m.Id, m => (m.Currency ?? baseCurrency).ToUpperInvariant());
         var exLegs = await _db.CurrencyExchanges
             .Where(x => x.UserId == userId
                 && ((x.ToPaymentMethodId != null && ids.Contains(x.ToPaymentMethodId.Value))
@@ -95,8 +117,6 @@ public class PaymentMethodService : IPaymentMethodService
                 exchangeOutById[fromId] = exchangeOutById.GetValueOrDefault(fromId) + x.FromAmount;
         }
 
-        var expenseById = expenseAgg.ToDictionary(a => a.Id);
-        var incomeById = incomeAgg.ToDictionary(a => a.Id);
         var paidToCardById = paidToCardAgg.ToDictionary(a => a.Id, a => a.Total);
         var fundedById = fundedAgg.ToDictionary(a => a.Id, a => a.Total);
         return methods.Select(m =>
@@ -107,8 +127,8 @@ public class PaymentMethodService : IPaymentMethodService
             fundedById.TryGetValue(m.Id, out var funded);
             exchangeInById.TryGetValue(m.Id, out var exIn);
             exchangeOutById.TryGetValue(m.Id, out var exOut);
-            return Map(m, baseCurrency, exp?.Month ?? 0m, exp?.Total ?? 0m,
-                inc?.Month ?? 0m, inc?.Total ?? 0m, paidToCard, funded, exIn, exOut);
+            return Map(m, baseCurrency, exp.Month, exp.Total,
+                inc.Month, inc.Total, paidToCard, funded, exIn, exOut);
         }).ToList();
     }
 
@@ -122,7 +142,7 @@ public class PaymentMethodService : IPaymentMethodService
         if (method is null) return null;
 
         var (expMonth, expTotal, incMonth, incTotal, paidToCard, funded, exIn, exOut) =
-            await AggregateAsync(id, userId, now, (method.Currency ?? baseCurrency).ToUpperInvariant(), ct);
+            await AggregateAsync(id, userId, now, (method.Currency ?? baseCurrency).ToUpperInvariant(), baseCurrency.ToUpperInvariant(), ct);
         return Map(method, baseCurrency, expMonth, expTotal, incMonth, incTotal, paidToCard, funded, exIn, exOut);
     }
 
@@ -146,7 +166,7 @@ public class PaymentMethodService : IPaymentMethodService
         ApplyCreditCardFields(method, type, dto);
 
         _db.PaymentMethods.Add(method);
-        if (dto.IsFavorite) await ClearOtherFavoritesAsync(userId, method, ct);
+        if (dto.IsFavorite) await ClearOtherFavoritesAsync(userId, method, baseCurrency, ct);
         await _db.SaveChangesAsync(ct);
         return Map(method, baseCurrency, 0m, 0m, 0m, 0m, 0m, 0m);
     }
@@ -169,11 +189,11 @@ public class PaymentMethodService : IPaymentMethodService
         method.IsFavorite = dto.IsFavorite;
         ApplyCreditCardFields(method, type, dto);
 
-        if (dto.IsFavorite) await ClearOtherFavoritesAsync(userId, method, ct);
+        if (dto.IsFavorite) await ClearOtherFavoritesAsync(userId, method, baseCurrency, ct);
         await _db.SaveChangesAsync(ct);
 
         var (expMonth, expTotal, incMonth, incTotal, paidToCard, funded, exIn, exOut) =
-            await AggregateAsync(id, userId, DateTime.UtcNow, (method.Currency ?? baseCurrency).ToUpperInvariant(), ct);
+            await AggregateAsync(id, userId, DateTime.UtcNow, (method.Currency ?? baseCurrency).ToUpperInvariant(), baseCurrency.ToUpperInvariant(), ct);
         return Map(method, baseCurrency, expMonth, expTotal, incMonth, incTotal, paidToCard, funded, exIn, exOut);
     }
 
@@ -185,21 +205,26 @@ public class PaymentMethodService : IPaymentMethodService
             ?? throw new NotFoundException("El medio de pago no existe.");
 
         method.IsFavorite = isFavorite;
-        if (isFavorite) await ClearOtherFavoritesAsync(userId, method, ct);
+        if (isFavorite) await ClearOtherFavoritesAsync(userId, method, baseCurrency, ct);
         await _db.SaveChangesAsync(ct);
 
         var (expMonth, expTotal, incMonth, incTotal, paidToCard, funded, exIn, exOut) =
-            await AggregateAsync(id, userId, DateTime.UtcNow, (method.Currency ?? baseCurrency).ToUpperInvariant(), ct);
+            await AggregateAsync(id, userId, DateTime.UtcNow, (method.Currency ?? baseCurrency).ToUpperInvariant(), baseCurrency.ToUpperInvariant(), ct);
         return Map(method, baseCurrency, expMonth, expTotal, incMonth, incTotal, paidToCard, funded, exIn, exOut);
     }
 
-    /// <summary>Ensures a single favorite per user by unsetting the flag on every other method.</summary>
-    private async Task ClearOtherFavoritesAsync(string userId, PaymentMethod favorite, CancellationToken ct)
+    /// <summary>
+    /// Ensures a single favorite per user *per currency*: unsets the flag only on other methods that
+    /// share the favorite's (effective) currency, so each currency can keep its own favorite.
+    /// </summary>
+    private async Task ClearOtherFavoritesAsync(string userId, PaymentMethod favorite, string baseCurrency, CancellationToken ct)
     {
+        var favCurrency = (favorite.Currency ?? baseCurrency).ToUpperInvariant();
         var others = await _db.PaymentMethods
             .Where(p => p.UserId == userId && p.IsFavorite && p.Id != favorite.Id)
             .ToListAsync(ct);
-        foreach (var o in others) o.IsFavorite = false;
+        foreach (var o in others)
+            if ((o.Currency ?? baseCurrency).ToUpperInvariant() == favCurrency) o.IsFavorite = false;
     }
 
     /// <summary>Creates the built-in cash account the first time an existing user has none.</summary>
@@ -290,21 +315,25 @@ public class PaymentMethodService : IPaymentMethodService
 
     private async Task<(decimal expMonth, decimal expTotal, decimal incMonth, decimal incTotal,
         decimal paidToCard, decimal funded, decimal exchangeIn, decimal exchangeOut)> AggregateAsync(
-        int id, string userId, DateTime now, string currency, CancellationToken ct)
+        int id, string userId, DateTime now, string currency, string baseCurrency, CancellationToken ct)
     {
+        // Only movements in the account's own currency affect its balance (an account is
+        // single-currency; a foreign-currency row attributed to it must not inflate it).
         var expMonth = await _db.Expenses
             .Where(e => e.UserId == userId && e.PaymentMethodId == id
+                && (e.Currency ?? baseCurrency) == currency
                 && e.Date.Year == now.Year && e.Date.Month == now.Month)
             .SumAsync(e => (decimal?)e.Amount, ct) ?? 0m;
         var expTotal = await _db.Expenses
-            .Where(e => e.UserId == userId && e.PaymentMethodId == id)
+            .Where(e => e.UserId == userId && e.PaymentMethodId == id && (e.Currency ?? baseCurrency) == currency)
             .SumAsync(e => (decimal?)e.Amount, ct) ?? 0m;
         var incMonth = await _db.Incomes
             .Where(i => i.UserId == userId && i.PaymentMethodId == id
+                && (i.Currency ?? baseCurrency) == currency
                 && i.Date.Year == now.Year && i.Date.Month == now.Month)
             .SumAsync(i => (decimal?)i.Amount, ct) ?? 0m;
         var incTotal = await _db.Incomes
-            .Where(i => i.UserId == userId && i.PaymentMethodId == id)
+            .Where(i => i.UserId == userId && i.PaymentMethodId == id && (i.Currency ?? baseCurrency) == currency)
             .SumAsync(i => (decimal?)i.Amount, ct) ?? 0m;
         var paidToCard = await _db.CardPayments
             .Where(p => p.UserId == userId && p.CreditCardId == id)
@@ -410,6 +439,20 @@ public class PaymentMethodService : IPaymentMethodService
         return new CardPaymentDto(
             payment.Id, card.Id, card.Name, source?.Id, source?.Name,
             payment.Amount, payment.Currency, payment.Date, payment.Note);
+    }
+
+    /// <summary>Card payments funded FROM a given cash/debit account (money that left it to pay a card).</summary>
+    public async Task<IReadOnlyList<CardPaymentDto>> GetPaymentsFundedFromAsync(int accountId, CancellationToken ct = default)
+    {
+        var userId = _current.RequireUserId();
+        return await _db.CardPayments
+            .Where(p => p.UserId == userId && p.SourcePaymentMethodId == accountId)
+            .OrderByDescending(p => p.Date)
+            .Select(p => new CardPaymentDto(
+                p.Id, p.CreditCardId, p.CreditCard!.Name,
+                p.SourcePaymentMethodId, p.SourcePaymentMethod != null ? p.SourcePaymentMethod.Name : null,
+                p.Amount, p.Currency, p.Date, p.Note))
+            .ToListAsync(ct);
     }
 
     public async Task<IReadOnlyList<CardPaymentDto>> GetCardPaymentsAsync(int cardId, CancellationToken ct = default)

@@ -53,6 +53,10 @@ public class PaymentMethodsController : ControllerBase
     public async Task<ActionResult<IEnumerable<CardPaymentDto>>> GetPayments(int id, CancellationToken ct) =>
         Ok(await _service.GetCardPaymentsAsync(id, ct));
 
+    [HttpGet("{id:int}/funded-payments")]
+    public async Task<ActionResult<IEnumerable<CardPaymentDto>>> GetFundedPayments(int id, CancellationToken ct) =>
+        Ok(await _service.GetPaymentsFundedFromAsync(id, ct));
+
     [HttpPost("{id:int}/payments")]
     public async Task<ActionResult<CardPaymentDto>> PayCard(int id, CardPaymentCreateDto dto, CancellationToken ct) =>
         Ok(await _service.PayCardAsync(id, dto, ct));
