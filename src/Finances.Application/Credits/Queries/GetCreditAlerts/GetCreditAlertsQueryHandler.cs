@@ -48,6 +48,62 @@ public class GetCreditAlertsQueryHandler : IRequestHandler<GetCreditAlertsQuery,
         var overdue = alerting.Count(a => a.AlertLevel == "Overdue");
         var dueSoon = alerting.Count - overdue;
 
-        return new CreditAlertsDto(overdue, dueSoon, alerting);
+        // ---- Credit-card alerts: over-limit + approaching statement/payment dates ----
+        var cards = await _db.PaymentMethods
+            .Where(p => p.UserId == userId && p.Type == Domain.Entities.PaymentMethodType.CreditCard && !p.Archived)
+            .ToListAsync(cancellationToken);
+
+        var cardAlerts = new List<CardAlertItemDto>();
+        if (cards.Count > 0)
+        {
+            var cardIds = cards.Select(c => c.Id).ToList();
+            var chargesByCard = await _db.Expenses
+                .Where(e => e.UserId == userId && e.PaymentMethodId != null && cardIds.Contains(e.PaymentMethodId.Value))
+                .GroupBy(e => e.PaymentMethodId!.Value)
+                .Select(g => new { Id = g.Key, Total = g.Sum(x => x.Amount) })
+                .ToListAsync(cancellationToken);
+            var paymentsByCard = await _db.CardPayments
+                .Where(p => p.UserId == userId && cardIds.Contains(p.CreditCardId))
+                .GroupBy(p => p.CreditCardId)
+                .Select(g => new { Id = g.Key, Total = g.Sum(x => x.Amount) })
+                .ToListAsync(cancellationToken);
+
+            var chargeMap  = chargesByCard.ToDictionary(x => x.Id, x => x.Total);
+            var paymentMap = paymentsByCard.ToDictionary(x => x.Id, x => x.Total);
+            var today = asOf.Day;
+
+            foreach (var card in cards)
+            {
+                if (card.CreditLimit is null || card.CreditLimit <= 0) continue;
+
+                var charged = chargeMap.GetValueOrDefault(card.Id);
+                var paid    = paymentMap.GetValueOrDefault(card.Id);
+                var debt    = charged - paid;
+                var limit   = card.CreditLimit.Value;
+
+                if (debt > limit)
+                    cardAlerts.Add(new CardAlertItemDto(card.Id, card.Name, "OverLimit",
+                        Math.Round(debt - limit, 2), null, card.Currency ?? ""));
+
+                // Statement day within next 7 days.
+                if (card.StatementDay is int stDay)
+                {
+                    var days = (stDay - today + 31) % 31;
+                    if (days is >= 0 and <= 7)
+                        cardAlerts.Add(new CardAlertItemDto(card.Id, card.Name, "StatementSoon",
+                            null, days, card.Currency ?? ""));
+                }
+                // Payment due day within next 7 days.
+                if (card.PaymentDueDay is int dueDay)
+                {
+                    var days = (dueDay - today + 31) % 31;
+                    if (days is >= 0 and <= 7)
+                        cardAlerts.Add(new CardAlertItemDto(card.Id, card.Name, "PaymentSoon",
+                            null, days, card.Currency ?? ""));
+                }
+            }
+        }
+
+        return new CreditAlertsDto(overdue, dueSoon, alerting, cardAlerts.Count, cardAlerts);
     }
 }

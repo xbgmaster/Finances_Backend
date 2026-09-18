@@ -88,11 +88,23 @@ public record CreditAlertItemDto(
     decimal MonthlyInstallment,
     string? Currency);
 
+/// <summary>Single credit-card alert (over limit or upcoming statement/payment date).</summary>
+public record CardAlertItemDto(
+    int Id,
+    string Name,
+    /// <summary>"OverLimit" | "StatementSoon" | "PaymentSoon"</summary>
+    string AlertType,
+    decimal? OverByAmount,
+    int? DaysUntilDate,
+    string Currency);
+
 /// <summary>Aggregated payment alerts for the current user (feeds the bell + dashboard banner).</summary>
 public record CreditAlertsDto(
     int OverdueCount,
     int DueSoonCount,
-    IReadOnlyList<CreditAlertItemDto> Items);
+    IReadOnlyList<CreditAlertItemDto> Items,
+    int CardAlertCount = 0,
+    IReadOnlyList<CardAlertItemDto>? CardAlerts = null);
 
 /// <summary>One row of the amortization schedule exposed to the API.</summary>
 public record AmortizationRowDto(

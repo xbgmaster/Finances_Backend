@@ -388,6 +388,23 @@ public class PaymentMethodService : IPaymentMethodService
                 throw new ValidationException("La cuenta de origen debe estar en la misma moneda que la tarjeta.");
         }
 
+        // Validate the source account has enough balance to cover this payment.
+        if (source is not null)
+        {
+            var sourceCur = (source.Currency ?? baseCurrency).ToUpperInvariant();
+            var (_, _, _, srcInc, _, srcFunded, srcExIn, srcExOut) =
+                await AggregateAsync(source.Id, userId, DateTime.UtcNow, sourceCur, baseCurrency, ct);
+            // Expenses funded from this account (charges debited directly to it).
+            var srcExp = await _db.Expenses
+                .Where(e => e.UserId == userId && e.PaymentMethodId == source.Id && (e.Currency ?? baseCurrency) == sourceCur)
+                .SumAsync(e => (decimal?)e.Amount, ct) ?? 0m;
+            var walletBalance = srcInc - srcExp - srcFunded + srcExIn - srcExOut;
+            if (walletBalance < dto.Amount)
+                throw new ValidationException(
+                    $"Saldo insuficiente. Disponible en {source.Name}: {Math.Round(walletBalance, 2)} {sourceCur}. " +
+                    $"No es posible realizar un pago de {dto.Amount} {currency}.");
+        }
+
         var payment = new CardPayment
         {
             CreditCardId = card.Id,
