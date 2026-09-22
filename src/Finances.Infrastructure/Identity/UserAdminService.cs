@@ -40,8 +40,9 @@ public class UserAdminService : IUserAdminService
             .Take(pageSize)
             .ToListAsync(ct);
 
+        var premiumIds = await GetRoleIdsAsync(AuthService.PremiumRole, ct);
         var counts = await ExpenseCountsAsync(users.Select(u => u.Id).ToList(), ct);
-        var items = users.Select(u => Map(u, adminIds, counts)).ToList();
+        var items = users.Select(u => Map(u, adminIds, premiumIds, counts)).ToList();
         return new PagedResult<AdminUserDto>(items, total, page, pageSize);
     }
 
@@ -49,8 +50,9 @@ public class UserAdminService : IUserAdminService
     {
         var user = await _users.FindByIdAsync(id) ?? throw new NotFoundException("User not found.");
         var adminIds = await GetAdminIdsAsync(ct);
+        var premiumIds = await GetRoleIdsAsync(AuthService.PremiumRole, ct);
         var counts = await ExpenseCountsAsync(new[] { user.Id }, ct);
-        return Map(user, adminIds, counts);
+        return Map(user, adminIds, premiumIds, counts);
     }
 
     public async Task<AdminUserDto> SetUserFeaturesAsync(string id, IReadOnlyList<string> disabledFeatures, CancellationToken ct = default)
@@ -62,8 +64,9 @@ public class UserAdminService : IUserAdminService
             throw new ValidationException(string.Join(" ", result.Errors.Select(e => e.Description)));
 
         var adminIds = await GetAdminIdsAsync(ct);
+        var premiumIds = await GetRoleIdsAsync(AuthService.PremiumRole, ct);
         var counts = await ExpenseCountsAsync(new[] { user.Id }, ct);
-        return Map(user, adminIds, counts);
+        return Map(user, adminIds, premiumIds, counts);
     }
 
     public async Task<AdminStatsDto> GetStatsAsync(CancellationToken ct = default)
@@ -104,6 +107,7 @@ public class UserAdminService : IUserAdminService
     public async Task<byte[]> ExportUsersCsvAsync(UserFilter filter, CancellationToken ct = default)
     {
         var adminIds = await GetAdminIdsAsync(ct);
+        var premiumIdsExport = await GetRoleIdsAsync(AuthService.PremiumRole, ct);
         var query = ApplyFilter(_users.Users.AsQueryable(), filter, adminIds);
         var users = await query.OrderByDescending(u => u.CreatedAt).ToListAsync(ct);
         var counts = await ExpenseCountsAsync(users.Select(u => u.Id).ToList(), ct);
@@ -112,7 +116,7 @@ public class UserAdminService : IUserAdminService
         sb.AppendLine("Id,Email,FullName,Role,Country,Currency,OnboardingCompleted,CreatedAt,LastLoginAt,ExpenseCount");
         foreach (var u in users)
         {
-            var d = Map(u, adminIds, counts);
+            var d = Map(u, adminIds, premiumIdsExport, counts);
             sb.AppendLine(string.Join(",",
                 Csv(d.Id), Csv(d.Email), Csv(d.FullName), Csv(d.Role), Csv(d.Country), Csv(d.Currency),
                 d.OnboardingCompleted, d.CreatedAt.ToString("o", CultureInfo.InvariantCulture),
@@ -227,9 +231,50 @@ public class UserAdminService : IUserAdminService
             .ToDictionaryAsync(x => x.Key, x => x.Count, ct);
     }
 
-    private static AdminUserDto Map(ApplicationUser u, HashSet<string> adminIds, Dictionary<string, int> expenseCount)
+    // ---- Role management -----------------------------------------------------------------------
+
+    public async Task<AdminUserDto> SetUserRoleAsync(string id, string role, CancellationToken ct = default)
     {
-        var role = adminIds.Contains(u.Id) ? AuthService.AdminRole : AuthService.UserRole;
+        var callerId = _current.RequireUserId();
+        if (id == callerId) throw new ValidationException("No puedes cambiar tu propio rol.");
+        var valid = new[] { AuthService.UserRole, AuthService.PremiumRole, AuthService.AdminRole };
+        if (!valid.Contains(role, StringComparer.OrdinalIgnoreCase))
+            throw new ValidationException($"Rol inválido. Opciones: {string.Join(", ", valid)}.");
+
+        var user = await _users.FindByIdAsync(id) ?? throw new NotFoundException("User not found.");
+
+        // Guard: there must always be at least one admin.
+        var currentRoles = (await _users.GetRolesAsync(user)).ToList();
+        if (currentRoles.Contains(AuthService.AdminRole) && !string.Equals(role, AuthService.AdminRole, StringComparison.OrdinalIgnoreCase))
+        {
+            var adminCount = (await _users.GetUsersInRoleAsync(AuthService.AdminRole)).Count;
+            if (adminCount <= 1)
+                throw new ValidationException("Debe haber al menos un administrador. Promueve otro usuario a Admin primero.");
+        }
+
+        foreach (var r in currentRoles) await _users.RemoveFromRoleAsync(user, r);
+        await _users.AddToRoleAsync(user, role);
+
+        var adminIds = await GetAdminIdsAsync(ct);
+        var premiumIds = await GetRoleIdsAsync(AuthService.PremiumRole, ct);
+        var counts = await ExpenseCountsAsync(new[] { user.Id }, ct);
+        return Map(user, adminIds, premiumIds, counts);
+    }
+
+    private async Task<HashSet<string>> GetRoleIdsAsync(string roleName, CancellationToken ct)
+    {
+        var roleId = await _db.Roles.Where(r => r.Name == roleName).Select(r => r.Id).FirstOrDefaultAsync(ct);
+        if (roleId is null) return new HashSet<string>();
+        var ids = await _db.UserRoles.Where(ur => ur.RoleId == roleId).Select(ur => ur.UserId).ToListAsync(ct);
+        return new HashSet<string>(ids);
+    }
+
+    private static AdminUserDto Map(ApplicationUser u, HashSet<string> adminIds, HashSet<string> premiumIds,
+        Dictionary<string, int> expenseCount)
+    {
+        var role = adminIds.Contains(u.Id) ? AuthService.AdminRole
+                 : premiumIds.Contains(u.Id) ? AuthService.PremiumRole
+                 : AuthService.UserRole;
         return new AdminUserDto(
             u.Id, u.Email ?? string.Empty, u.FullName, role, u.Country, u.Currency,
             u.OnboardingCompleted, u.CreatedAt, u.LastLoginAt, expenseCount.GetValueOrDefault(u.Id),

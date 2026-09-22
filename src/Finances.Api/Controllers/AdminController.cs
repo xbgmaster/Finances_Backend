@@ -42,6 +42,11 @@ public class AdminController : ControllerBase
         string id, [FromBody] UpdateUserFeaturesDto dto, CancellationToken ct) =>
         Ok(await _admin.SetUserFeaturesAsync(id, dto.DisabledFeatures ?? new List<string>(), ct));
 
+    [HttpPut("users/{id}/role")]
+    public async Task<ActionResult<AdminUserDto>> SetUserRole(
+        string id, [FromBody] SetUserRoleDto dto, CancellationToken ct) =>
+        Ok(await _admin.SetUserRoleAsync(id, dto.Role, ct));
+
     [HttpGet("stats")]
     public async Task<ActionResult<AdminStatsDto>> GetStats(CancellationToken ct) =>
         Ok(await _admin.GetStatsAsync(ct));

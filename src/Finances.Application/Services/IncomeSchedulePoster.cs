@@ -164,7 +164,9 @@ public static class IncomeSchedulePoster
     /// the unposted <paramref name="shifts"/> up to each reached pay-cut day into one income.
     /// Returns the number of incomes posted.
     /// </summary>
-    public static int PostDue(IFinanceDbContext db, IncomeSchedule schedule, DateTime today, IReadOnlyList<WorkShift>? shifts = null)
+    public static int PostDue(IFinanceDbContext db, IncomeSchedule schedule, DateTime today,
+        IReadOnlyList<WorkShift>? shifts = null,
+        IReadOnlyList<PayOccurrenceOverride>? overrides = null)
     {
         if (!schedule.Active || !schedule.AutoPost) return 0;
 
@@ -176,19 +178,22 @@ public static class IncomeSchedulePoster
         {
             posted += schedule.PayType == PayType.Hourly
                 ? PostHourlyCut(db, schedule, payDay, shifts)
-                : PostFixed(db, schedule, payDay);
+                : PostFixed(db, schedule, payDay, overrides);
             // Advance the marker regardless (an empty hourly cut still moves the window forward).
             schedule.LastPostedPeriod = payDay.ToString("yyyyMMdd");
         }
         return posted;
     }
 
-    private static int PostFixed(IFinanceDbContext db, IncomeSchedule schedule, DateTime payDay)
+    private static int PostFixed(IFinanceDbContext db, IncomeSchedule schedule, DateTime payDay,
+        IReadOnlyList<PayOccurrenceOverride>? overrides = null)
     {
-        if (schedule.Amount <= 0) return 0;
+        // Use overridden amount if the user adjusted this specific occurrence.
+        var amount = overrides?.FirstOrDefault(o => o.PayDate.Date == payDay.Date)?.Amount ?? schedule.Amount;
+        if (amount <= 0) return 0;
         db.Incomes.Add(new Income
         {
-            Amount = schedule.Amount,
+            Amount = amount,
             Description = schedule.Name,
             Date = payDay,
             Currency = schedule.Currency,

@@ -44,7 +44,9 @@ public class ProfileService : IProfileService
     private async Task<UserProfileDto> MapAsync(ApplicationUser user)
     {
         var roles = await _users.GetRolesAsync(user);
-        var role = roles.Contains(AuthService.AdminRole) ? AuthService.AdminRole : AuthService.UserRole;
+        var role = roles.Contains(AuthService.AdminRole) ? AuthService.AdminRole
+                 : roles.Contains(AuthService.PremiumRole) ? AuthService.PremiumRole
+                 : AuthService.UserRole;
         return new UserProfileDto(
             user.Id, user.Email!, user.FullName, user.Country, user.Currency,
             user.MonthlyIncomeTarget, user.OnboardingCompleted, role);

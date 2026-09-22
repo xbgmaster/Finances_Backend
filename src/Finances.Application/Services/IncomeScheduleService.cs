@@ -136,8 +136,20 @@ public class IncomeScheduleService : IIncomeScheduleService
         var hourlyIds = schedules.Where(s => s.PayType == PayType.Hourly).Select(s => s.Id).ToList();
         var shiftsByJob = await LoadUnpostedShiftsAsync(hourlyIds, ct);
 
+        // Preload pay-occurrence overrides for fixed jobs (amount adjustments for specific pay days).
+        var allIds = schedules.Select(s => s.Id).ToList();
+        var overridesByJob = allIds.Count == 0
+            ? new Dictionary<int, List<PayOccurrenceOverride>>()
+            : (await _db.PayOccurrenceOverrides
+                .Where(o => o.UserId == userId && allIds.Contains(o.IncomeScheduleId))
+                .ToListAsync(ct))
+                .GroupBy(o => o.IncomeScheduleId)
+                .ToDictionary(g => g.Key, g => g.ToList());
+
         var posted = schedules.Sum(s => IncomeSchedulePoster.PostDue(
-            _db, s, today, shiftsByJob.TryGetValue(s.Id, out var list) ? list : null));
+            _db, s, today,
+            shiftsByJob.TryGetValue(s.Id, out var shifts) ? shifts : null,
+            overridesByJob.TryGetValue(s.Id, out var ov) ? ov : null));
         if (posted > 0) await _db.SaveChangesAsync(ct);
         return posted;
     }
@@ -227,6 +239,29 @@ public class IncomeScheduleService : IIncomeScheduleService
         if (dto.Amount <= 0)
             throw new ValidationException("El monto debe ser mayor que cero.");
 
+        // For FIXED-salary jobs: store a pay-occurrence override (keeps the entry SCHEDULED in the
+        // calendar with the adjusted amount; the income is posted by the auto-post on the pay day).
+        // For HOURLY jobs: keep the direct-income path (there is no "scheduled" occurrence to adjust).
+        if (job.PayType == PayType.Fixed)
+        {
+            var payDate = dto.Date.Date;
+            var existing = await _db.PayOccurrenceOverrides
+                .FirstOrDefaultAsync(o => o.IncomeScheduleId == job.Id && o.PayDate == payDate, ct);
+            if (existing is not null)
+                existing.Amount = dto.Amount; // upsert
+            else
+                _db.PayOccurrenceOverrides.Add(new PayOccurrenceOverride
+                {
+                    IncomeScheduleId = job.Id,
+                    PayDate = payDate,
+                    Amount = dto.Amount,
+                    UserId = userId,
+                });
+            await _db.SaveChangesAsync(ct);
+            return;
+        }
+
+        // Hourly job — direct income (unchanged behavior).
         _db.Incomes.Add(new Income
         {
             Amount = dto.Amount,
@@ -238,6 +273,17 @@ public class IncomeScheduleService : IIncomeScheduleService
             UserId = userId,
         });
         await _db.SaveChangesAsync(ct);
+    }
+
+    /// <summary>Lists pay-occurrence overrides for the current user in a given month.</summary>
+    public async Task<IReadOnlyList<PayOccurrenceOverrideDto>> GetOccurrenceOverridesAsync(
+        int year, int month, CancellationToken ct = default)
+    {
+        var userId = _current.RequireUserId();
+        return await _db.PayOccurrenceOverrides
+            .Where(o => o.UserId == userId && o.PayDate.Year == year && o.PayDate.Month == month)
+            .Select(o => new PayOccurrenceOverrideDto(o.Id, o.IncomeScheduleId, o.PayDate, o.Amount))
+            .ToListAsync(ct);
     }
 
     // ---- helpers ------------------------------------------------------------------------------

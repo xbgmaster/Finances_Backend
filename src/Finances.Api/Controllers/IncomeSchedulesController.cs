@@ -68,11 +68,19 @@ public class IncomeSchedulesController : ControllerBase
         return NoContent();
     }
 
-    /// <summary>Posts a direct one-off payment (income) attributed to a job on a given day.</summary>
+    /// <summary>
+    /// Fixed jobs: stores a pay-occurrence override (stays SCHEDULED, auto-posted with adjusted amount).
+    /// Hourly jobs: creates a direct income immediately.
+    /// </summary>
     [HttpPost("{id:int}/payments")]
     public async Task<IActionResult> CreatePayment(int id, [FromBody] WorkPaymentCreateDto dto, CancellationToken ct)
     {
         await _service.CreatePaymentAsync(id, dto, ct);
         return NoContent();
     }
+
+    [HttpGet("occurrence-overrides")]
+    public async Task<ActionResult<IReadOnlyList<PayOccurrenceOverrideDto>>> GetOccurrenceOverrides(
+        [FromQuery] int year, [FromQuery] int month, CancellationToken ct) =>
+        Ok(await _service.GetOccurrenceOverridesAsync(year, month, ct));
 }

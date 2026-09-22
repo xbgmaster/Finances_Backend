@@ -27,7 +27,7 @@ public static class IdentitySeeder
         var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
         var logger = services.GetService<ILoggerFactory>()?.CreateLogger("IdentitySeeder");
 
-        foreach (var role in new[] { AuthService.AdminRole, AuthService.UserRole })
+        foreach (var role in new[] { AuthService.AdminRole, AuthService.PremiumRole, AuthService.UserRole })
         {
             if (!await roleManager.RoleExistsAsync(role))
                 await roleManager.CreateAsync(new IdentityRole(role));

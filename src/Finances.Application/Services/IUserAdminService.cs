@@ -21,4 +21,7 @@ public interface IUserAdminService
     /// Front-end hides the matching menu items and routes; enables future subscription tiers.
     /// </summary>
     Task<AdminUserDto> SetUserFeaturesAsync(string id, IReadOnlyList<string> disabledFeatures, CancellationToken ct = default);
+
+    /// <summary>Changes a user's role to User, Premium or Admin. Cannot change own role.</summary>
+    Task<AdminUserDto> SetUserRoleAsync(string id, string role, CancellationToken ct = default);
 }

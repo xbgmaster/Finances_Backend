@@ -14,6 +14,7 @@ public record AdminUserDto(
     IReadOnlyList<string> DisabledFeatures);
 
 public record UpdateUserFeaturesDto(IReadOnlyList<string> DisabledFeatures);
+public record SetUserRoleDto(string Role);
 
 public record PagedResult<T>(IReadOnlyList<T> Items, int Total, int Page, int PageSize);
 

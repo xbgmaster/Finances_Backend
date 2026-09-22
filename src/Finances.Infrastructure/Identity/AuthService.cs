@@ -16,6 +16,7 @@ namespace Finances.Infrastructure.Identity;
 public class AuthService : IAuthService
 {
     public const string UserRole = "User";
+    public const string PremiumRole = "Premium";
     public const string AdminRole = "Admin";
 
     private readonly UserManager<ApplicationUser> _users;

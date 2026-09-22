@@ -2,6 +2,9 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Finances.Application.Dtos;
 
+/// <summary>Amount override for a single pay occurrence of a fixed-salary job.</summary>
+public record PayOccurrenceOverrideDto(int Id, int IncomeScheduleId, DateTime PayDate, decimal Amount);
+
 public record IncomeScheduleDto(
     int Id,
     string Name,

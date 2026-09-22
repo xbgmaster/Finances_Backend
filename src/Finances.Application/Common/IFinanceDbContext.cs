@@ -13,6 +13,7 @@ public interface IFinanceDbContext
     DbSet<Income> Incomes { get; }
     DbSet<IncomeSchedule> IncomeSchedules { get; }
     DbSet<WorkShift> WorkShifts { get; }
+    DbSet<PayOccurrenceOverride> PayOccurrenceOverrides { get; }
     DbSet<Expense> Expenses { get; }
     DbSet<Credit> Credits { get; }
     DbSet<CreditPayment> CreditPayments { get; }

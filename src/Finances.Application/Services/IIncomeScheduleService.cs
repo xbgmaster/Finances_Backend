@@ -18,6 +18,13 @@ public interface IIncomeScheduleService
     Task<WorkShiftDto> UpdateShiftAsync(int id, WorkShiftUpdateDto dto, CancellationToken ct = default);
     Task DeleteShiftAsync(int id, CancellationToken ct = default);
 
-    /// <summary>Posts a direct one-off payment (income) attributed to a job on a given day.</summary>
+    /// <summary>
+    /// For fixed-salary jobs: stores a pay-occurrence override so the scheduled entry shows the
+    /// adjusted amount without immediately posting income (the auto-post uses it on the pay day).
+    /// For hourly jobs: creates a direct income (unchanged).
+    /// </summary>
     Task CreatePaymentAsync(int jobId, WorkPaymentCreateDto dto, CancellationToken ct = default);
+
+    /// <summary>Pay-occurrence overrides for the current user in a given month.</summary>
+    Task<IReadOnlyList<PayOccurrenceOverrideDto>> GetOccurrenceOverridesAsync(int year, int month, CancellationToken ct = default);
 }
