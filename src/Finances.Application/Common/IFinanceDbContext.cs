@@ -15,6 +15,7 @@ public interface IFinanceDbContext
     DbSet<WorkShift> WorkShifts { get; }
     DbSet<PayOccurrenceOverride> PayOccurrenceOverrides { get; }
     DbSet<Expense> Expenses { get; }
+    DbSet<ExpenseSchedule> ExpenseSchedules { get; }
     DbSet<Credit> Credits { get; }
     DbSet<CreditPayment> CreditPayments { get; }
     DbSet<CurrencyExchange> CurrencyExchanges { get; }

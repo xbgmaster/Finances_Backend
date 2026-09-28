@@ -35,6 +35,12 @@ public class ExpenseConfiguration : IEntityTypeConfiguration<Expense>
             .OnDelete(DeleteBehavior.SetNull);
         builder.HasIndex(e => e.PaymentMethodId);
 
+        builder.HasOne(e => e.ExpenseSchedule)
+            .WithMany()
+            .HasForeignKey(e => e.ExpenseScheduleId)
+            .OnDelete(DeleteBehavior.SetNull);
+        builder.HasIndex(e => e.ExpenseScheduleId);
+
         builder.Property(e => e.UserId).IsRequired().HasMaxLength(450);
         builder.HasIndex(e => e.UserId);
         builder.HasOne<ApplicationUser>()

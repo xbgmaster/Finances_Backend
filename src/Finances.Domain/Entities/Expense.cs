@@ -36,6 +36,13 @@ public class Expense
     public int? PaymentMethodId { get; set; }
     public PaymentMethod? PaymentMethod { get; set; }
 
+    /// <summary>
+    /// When set, this expense was auto-generated from a recurring <see cref="ExpenseSchedule"/>
+    /// (subscription). Null for manually added expenses.
+    /// </summary>
+    public int? ExpenseScheduleId { get; set; }
+    public ExpenseSchedule? ExpenseSchedule { get; set; }
+
     /// <summary>Propietario del gasto (Identity user id).</summary>
     public string UserId { get; set; } = string.Empty;
 }

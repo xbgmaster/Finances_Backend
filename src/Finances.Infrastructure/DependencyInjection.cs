@@ -115,6 +115,17 @@ public static class DependencyInjection
         if (autoPost.Enabled)
             services.AddHostedService<Scheduling.IncomeAutoPostService>();
 
+        // Background job that auto-posts subscription expenses on each charge day.
+        var expenseAutoPost = new Scheduling.ExpenseAutoPostOptions
+        {
+            Enabled = !bool.TryParse(configuration["ExpenseAutoPost:Enabled"], out var eae) || eae,
+            CheckEveryHours = double.TryParse(configuration["ExpenseAutoPost:CheckEveryHours"], out var eah) ? eah : 6,
+            StartupDelaySeconds = double.TryParse(configuration["ExpenseAutoPost:StartupDelaySeconds"], out var easd) ? easd : 50,
+        };
+        services.AddSingleton(expenseAutoPost);
+        if (expenseAutoPost.Enabled)
+            services.AddHostedService<Scheduling.ExpenseAutoPostService>();
+
         return services;
     }
 }

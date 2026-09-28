@@ -29,6 +29,7 @@ public static class DependencyInjection
         services.AddScoped<IIncomeService, IncomeService>();
         services.AddScoped<IIncomeScheduleService, IncomeScheduleService>();
         services.AddScoped<IExpenseService, ExpenseService>();
+        services.AddScoped<IExpenseScheduleService, ExpenseScheduleService>();
         services.AddScoped<IPaymentMethodService, PaymentMethodService>();
         services.AddScoped<IBalanceService, BalanceService>();
         services.AddScoped<IProjectionService, ProjectionService>();
