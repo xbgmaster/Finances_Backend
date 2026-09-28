@@ -62,7 +62,10 @@ public class ExpenseService : IExpenseService
         var baseCurrency = (await _profile.GetAsync(ct)).Currency;
 
         page = page < 1 ? 1 : page;
-        pageSize = pageSize is < 1 or > 200 ? 25 : pageSize;
+        // Clamp into range; do not reset oversized requests to 25 (that silently
+        // truncated month loads when the UI asked for pageSize 1000).
+        if (pageSize < 1) pageSize = 25;
+        if (pageSize > 1000) pageSize = 1000;
 
         var query = _db.Expenses.Include(e => e.Category).Where(e => e.UserId == userId);
         if (year is not null) query = query.Where(e => e.Date.Year == year);

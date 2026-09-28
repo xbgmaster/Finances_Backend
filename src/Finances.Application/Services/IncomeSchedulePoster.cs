@@ -161,7 +161,7 @@ public static class IncomeSchedulePoster
     /// Posts due income up to <paramref name="today"/> and advances
     /// <see cref="IncomeSchedule.LastPostedPeriod"/>. Does NOT save — the caller does.
     /// For fixed jobs it posts the fixed amount on each reached pay day; for hourly jobs it totals
-    /// the unposted <paramref name="shifts"/> up to each reached pay-cut day into one income.
+    /// the unposted <paramref name="shifts"/> in the pay window (previous cut, this cut] into one income.
     /// Returns the number of incomes posted.
     /// </summary>
     public static int PostDue(IFinanceDbContext db, IncomeSchedule schedule, DateTime today,
@@ -208,10 +208,14 @@ public static class IncomeSchedulePoster
     {
         if (shifts is null || shifts.Count == 0) return 0;
 
-        // Sweep every unposted shift dated on/before this cut. Income == null (nav) guards against
-        // re-consuming shifts already assigned earlier in this same multi-period run (pre-save).
+        // Only shifts in this pay window: (previousCut, payDay]. Sweeping every unposted
+        // shift on/before payDay pulled older periods into a single income (e.g. 679 vs 558).
+        var prevCut = MostRecentPayBefore(schedule, payDay);
+
         var due = shifts
-            .Where(w => w.IncomeId == null && w.Income == null && w.Date.Date <= payDay.Date)
+            .Where(w => w.IncomeId == null && w.Income == null
+                && w.Date.Date <= payDay.Date
+                && (prevCut is null || w.Date.Date > prevCut.Value.Date))
             .ToList();
         if (due.Count == 0) return 0;
 
