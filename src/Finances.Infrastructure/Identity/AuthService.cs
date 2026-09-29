@@ -107,7 +107,7 @@ public class AuthService : IAuthService
                 idToken,
                 new Google.Apis.Auth.GoogleJsonWebSignature.ValidationSettings
                 {
-                    Audience = new[] { _google.ClientId }
+                    Audience = _google.Audiences.ToList()
                 });
         }
         catch (Exception ex)

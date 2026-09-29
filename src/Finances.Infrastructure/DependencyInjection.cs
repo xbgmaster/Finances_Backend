@@ -92,6 +92,7 @@ public static class DependencyInjection
         services.AddSingleton(new GoogleAuthSettings
         {
             ClientId = configuration["Google:ClientId"]?.Trim() ?? string.Empty,
+            AndroidClientId = configuration["Google:AndroidClientId"]?.Trim() ?? string.Empty,
         });
 
         services.AddScoped<IAuthService, AuthService>();

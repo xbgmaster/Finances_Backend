@@ -7,5 +7,12 @@ namespace Finances.Infrastructure.Identity;
 public class GoogleAuthSettings
 {
     public string ClientId { get; set; } = string.Empty;
+    public string AndroidClientId { get; set; } = string.Empty;
     public bool IsConfigured => !string.IsNullOrWhiteSpace(ClientId);
+
+    public IReadOnlyList<string> Audiences =>
+        new[] { ClientId, AndroidClientId }
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
 }
