@@ -22,6 +22,14 @@ public class AuthController : ControllerBase
     public async Task<ActionResult<AuthResultDto>> Login(LoginDto dto, CancellationToken ct) =>
         Ok(await _auth.LoginAsync(dto, ct));
 
+    [HttpPost("google")]
+    public async Task<ActionResult<AuthResultDto>> Google(GoogleLoginDto dto, CancellationToken ct) =>
+        Ok(await _auth.LoginWithGoogleAsync(dto.IdToken, ct));
+
+    [HttpGet("google-client")]
+    public ActionResult<GoogleClientDto> GoogleClient() =>
+        Ok(new GoogleClientDto(_auth.GoogleClientId));
+
     [HttpPost("refresh")]
     public async Task<ActionResult<AuthResultDto>> Refresh(RefreshRequestDto dto, CancellationToken ct) =>
         Ok(await _auth.RefreshAsync(dto.RefreshToken, ct));

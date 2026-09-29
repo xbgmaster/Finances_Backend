@@ -26,6 +26,7 @@ public class AuthService : IAuthService
     private readonly IEmailSender _email;
     private readonly AppUrls _urls;
     private readonly ILogger<AuthService> _logger;
+    private readonly GoogleAuthSettings _google;
 
     public AuthService(
         UserManager<ApplicationUser> users,
@@ -34,6 +35,7 @@ public class AuthService : IAuthService
         FinanceDbContext db,
         IEmailSender email,
         AppUrls urls,
+        GoogleAuthSettings google,
         ILogger<AuthService> logger)
     {
         _users = users;
@@ -42,8 +44,11 @@ public class AuthService : IAuthService
         _db = db;
         _email = email;
         _urls = urls;
+        _google = google;
         _logger = logger;
     }
+
+    public string? GoogleClientId => _google.IsConfigured ? _google.ClientId : null;
 
     public async Task<AuthResultDto> RegisterAsync(RegisterDto dto, CancellationToken ct = default)
     {
@@ -86,6 +91,73 @@ public class AuthService : IAuthService
         await _users.UpdateAsync(user);
 
         return await BuildResultAsync(user, ct);
+    }
+
+    public async Task<AuthResultDto> LoginWithGoogleAsync(string idToken, CancellationToken ct = default)
+    {
+        if (!_google.IsConfigured)
+            throw new ValidationException("Google sign-in is not configured.");
+        if (string.IsNullOrWhiteSpace(idToken))
+            throw new ValidationException("Google sign-in was cancelled.");
+
+        Google.Apis.Auth.GoogleJsonWebSignature.Payload payload;
+        try
+        {
+            payload = await Google.Apis.Auth.GoogleJsonWebSignature.ValidateAsync(
+                idToken,
+                new Google.Apis.Auth.GoogleJsonWebSignature.ValidationSettings
+                {
+                    Audience = new[] { _google.ClientId }
+                });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Rejected Google ID token.");
+            throw new ValidationException("Google sign-in could not be verified.");
+        }
+
+        if (string.IsNullOrWhiteSpace(payload.Email) || payload.EmailVerified != true)
+            throw new ValidationException("Google did not confirm this email address.");
+
+        var email = payload.Email.Trim();
+        var user = await _users.FindByEmailAsync(email);
+        if (user is null)
+        {
+            user = new ApplicationUser
+            {
+                UserName = email,
+                Email = email,
+                EmailConfirmed = true,
+                FullName = payload.Name,
+                Currency = "CAD",
+                CreatedAt = DateTime.UtcNow,
+                LastLoginAt = DateTime.UtcNow
+            };
+            var created = await _users.CreateAsync(user, NewPassword());
+            if (!created.Succeeded)
+                throw new ValidationException(string.Join(" ", created.Errors.Select(e => e.Description)));
+
+            await _users.AddToRoleAsync(user, UserRole);
+            _db.Categories.AddRange(DefaultCategories.For(user.Id));
+            _db.PaymentMethods.Add(PaymentMethod.DefaultCash(user.Id));
+            await _db.SaveChangesAsync(ct);
+        }
+        else
+        {
+            user.LastLoginAt = DateTime.UtcNow;
+            if (!user.EmailConfirmed) user.EmailConfirmed = true;
+            if (string.IsNullOrWhiteSpace(user.FullName) && !string.IsNullOrWhiteSpace(payload.Name))
+                user.FullName = payload.Name;
+            await _users.UpdateAsync(user);
+        }
+
+        return await BuildResultAsync(user, ct);
+    }
+
+    private static string NewPassword()
+    {
+        var raw = Convert.ToBase64String(RandomNumberGenerator.GetBytes(24));
+        return raw + "aA1";
     }
 
     public async Task<AuthResultDto> RefreshAsync(string refreshToken, CancellationToken ct = default)

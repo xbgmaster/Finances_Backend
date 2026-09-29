@@ -63,3 +63,11 @@ public class RefreshRequestDto
 }
 
 public record AuthResultDto(string Token, DateTime ExpiresAt, string RefreshToken, UserInfoDto User);
+
+public class GoogleLoginDto
+{
+    [Required]
+    public string IdToken { get; set; } = string.Empty;
+}
+
+public record GoogleClientDto(string? ClientId);

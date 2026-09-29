@@ -26,4 +26,13 @@ public interface IAuthService
     /// Validates the reset token and sets the user's new password.
     /// </summary>
     Task ResetPasswordAsync(ResetPasswordDto dto, CancellationToken ct = default);
+
+    /// <summary>
+    /// Signs in or creates a user from a Google ID token. Existing email/password
+    /// accounts with the same email are reused.
+    /// </summary>
+    Task<AuthResultDto> LoginWithGoogleAsync(string idToken, CancellationToken ct = default);
+
+    /// <summary>Web client id the frontend uses to start Google sign-in. Null when not configured.</summary>
+    string? GoogleClientId { get; }
 }

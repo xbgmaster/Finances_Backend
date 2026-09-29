@@ -89,6 +89,11 @@ public static class DependencyInjection
             FrontendBaseUrl = configuration["App:FrontendUrl"] ?? "http://localhost:5173",
         });
 
+        services.AddSingleton(new GoogleAuthSettings
+        {
+            ClientId = configuration["Google:ClientId"]?.Trim() ?? string.Empty,
+        });
+
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IProfileService, ProfileService>();
         services.AddScoped<IUserAdminService, UserAdminService>();
