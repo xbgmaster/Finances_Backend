@@ -50,7 +50,8 @@ public class ExpenseService : IExpenseService
                 e.CreditPayment != null ? e.CreditPayment.CreditId : (int?)null,
                 e.PaymentMethodId,
                 e.PaymentMethod != null ? e.PaymentMethod.Name : null,
-                e.PaymentMethod != null ? e.PaymentMethod.Type.ToString() : null))
+                e.PaymentMethod != null ? e.PaymentMethod.Type.ToString() : null,
+                e.ExpenseScheduleId))
             .ToListAsync(ct);
     }
 
@@ -102,7 +103,8 @@ public class ExpenseService : IExpenseService
                 e.CreditPayment != null ? e.CreditPayment.CreditId : (int?)null,
                 e.PaymentMethodId,
                 e.PaymentMethod != null ? e.PaymentMethod.Name : null,
-                e.PaymentMethod != null ? e.PaymentMethod.Type.ToString() : null))
+                e.PaymentMethod != null ? e.PaymentMethod.Type.ToString() : null,
+                e.ExpenseScheduleId))
             .ToListAsync(ct);
 
         return new PagedExpensesDto(items, total, page, pageSize, sum);
@@ -148,7 +150,8 @@ public class ExpenseService : IExpenseService
             expense.Id, expense.Amount, expense.Description, expense.Date,
             category.Id, category.Name, category.Icon, category.Color,
             expense.ReceiptUrl, expense.Currency ?? baseCurrency,
-            null, paymentMethod?.Id, paymentMethod?.Name);
+            null, paymentMethod?.Id, paymentMethod?.Name, paymentMethod?.Type.ToString(),
+            expense.ExpenseScheduleId);
     }
 
     public async Task<ExpenseDto> UpdateAsync(int id, ExpenseUpdateDto dto, FileUpload? receipt, CancellationToken ct = default)
@@ -200,7 +203,8 @@ public class ExpenseService : IExpenseService
             expense.Id, expense.Amount, expense.Description, expense.Date,
             category.Id, category.Name, category.Icon, category.Color,
             expense.ReceiptUrl, expense.Currency ?? baseCurrency,
-            null, paymentMethod?.Id, paymentMethod?.Name);
+            null, paymentMethod?.Id, paymentMethod?.Name, paymentMethod?.Type.ToString(),
+            expense.ExpenseScheduleId);
     }
 
     private async Task<PaymentMethod> ResolvePaymentMethodAsync(int? id, string userId, CancellationToken ct)

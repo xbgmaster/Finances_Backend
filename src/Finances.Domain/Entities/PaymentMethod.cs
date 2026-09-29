@@ -51,8 +51,8 @@ public class PaymentMethod
     public int? PaymentDueDay { get; set; }
 
     /// <summary>
-    /// Tracks the last due-date reminder sent for this card (see the credit reminder pattern).
-    /// Reserved for the card due-date alerts added in a later phase.
+    /// Tracks the last due-date reminder emailed for this card (yyyyMMdd:AlertLevel),
+    /// same pattern as <see cref="Credit.LastReminderKey"/>.
     /// </summary>
     public string? LastReminderKey { get; set; }
 

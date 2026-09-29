@@ -188,6 +188,9 @@ public static class IncomeSchedulePoster
     private static int PostFixed(IFinanceDbContext db, IncomeSchedule schedule, DateTime payDay,
         IReadOnlyList<PayOccurrenceOverride>? overrides = null)
     {
+        // Idempotent against concurrent post-due (UI) + background job races.
+        if (AlreadyPosted(db, schedule, payDay)) return 0;
+
         // Use overridden amount if the user adjusted this specific occurrence.
         var amount = overrides?.FirstOrDefault(o => o.PayDate.Date == payDay.Date)?.Amount ?? schedule.Amount;
         if (amount <= 0) return 0;
@@ -204,9 +207,25 @@ public static class IncomeSchedulePoster
         return 1;
     }
 
+    private static bool AlreadyPosted(IFinanceDbContext db, IncomeSchedule schedule, DateTime payDay)
+    {
+        var day = payDay.Date;
+        var next = day.AddDays(1);
+        if (db.Incomes.Local.Any(i =>
+                i.IncomeScheduleId == schedule.Id
+                && i.UserId == schedule.UserId
+                && i.Date >= day && i.Date < next))
+            return true;
+        return db.Incomes.Any(i =>
+            i.IncomeScheduleId == schedule.Id
+            && i.UserId == schedule.UserId
+            && i.Date >= day && i.Date < next);
+    }
+
     private static int PostHourlyCut(IFinanceDbContext db, IncomeSchedule schedule, DateTime payDay, IReadOnlyList<WorkShift>? shifts)
     {
         if (shifts is null || shifts.Count == 0) return 0;
+        if (AlreadyPosted(db, schedule, payDay)) return 0;
 
         // Only shifts in this pay window: (previousCut, payDay]. Sweeping every unposted
         // shift on/before payDay pulled older periods into a single income (e.g. 679 vs 558).

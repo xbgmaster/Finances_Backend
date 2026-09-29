@@ -107,6 +107,22 @@ public static class ExpenseSchedulePoster
         var posted = 0;
         foreach (var chargeDay in EnumerateChargeDates(schedule, lastDate, today))
         {
+            var day = chargeDay.Date;
+            var next = day.AddDays(1);
+            var exists = db.Expenses.Local.Any(e =>
+                    e.ExpenseScheduleId == schedule.Id
+                    && e.UserId == schedule.UserId
+                    && e.Date >= day && e.Date < next)
+                || db.Expenses.Any(e =>
+                    e.ExpenseScheduleId == schedule.Id
+                    && e.UserId == schedule.UserId
+                    && e.Date >= day && e.Date < next);
+            if (exists)
+            {
+                schedule.LastPostedPeriod = chargeDay.ToString("yyyyMMdd");
+                continue;
+            }
+
             db.Expenses.Add(new Expense
             {
                 Amount = schedule.Amount,

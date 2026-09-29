@@ -65,7 +65,9 @@ public record ExpenseDto(
     // Payment method / card used (optional), for per-card tracking.
     int? PaymentMethodId = null,
     string? PaymentMethodName = null,
-    string? PaymentMethodType = null);
+    string? PaymentMethodType = null,
+    // When set, this expense was auto-posted from a subscription / expense schedule.
+    int? ExpenseScheduleId = null);
 
 // Server-side paginated expenses. Sum is the total amount across ALL matching rows
 // (not just the current page), so the UI can show an accurate account/period subtotal.
