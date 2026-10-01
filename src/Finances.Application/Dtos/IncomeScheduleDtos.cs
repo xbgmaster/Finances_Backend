@@ -149,4 +149,8 @@ public class WorkPaymentCreateDto
 
     [Range(0.01, double.MaxValue, ErrorMessage = "El monto debe ser mayor que cero.")]
     public decimal Amount { get; set; }
+
+    /// <summary>Optional label. Falls back to the job name when empty.</summary>
+    [MaxLength(200)]
+    public string? Description { get; set; }
 }

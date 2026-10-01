@@ -9,6 +9,7 @@ public class PayOccurrenceOverrideConfiguration : IEntityTypeConfiguration<PayOc
     public void Configure(EntityTypeBuilder<PayOccurrenceOverride> builder)
     {
         builder.Property(o => o.Amount).HasPrecision(18, 2);
+        builder.Property(o => o.Description).HasMaxLength(200);
         builder.Property(o => o.UserId).IsRequired().HasMaxLength(450);
 
         // One override per job per date (upsert semantics).

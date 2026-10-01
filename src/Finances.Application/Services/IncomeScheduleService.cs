@@ -247,14 +247,19 @@ public class IncomeScheduleService : IIncomeScheduleService
             var payDate = dto.Date.Date;
             var existing = await _db.PayOccurrenceOverrides
                 .FirstOrDefaultAsync(o => o.IncomeScheduleId == job.Id && o.PayDate == payDate, ct);
+            var note = string.IsNullOrWhiteSpace(dto.Description) ? null : dto.Description.Trim();
             if (existing is not null)
+            {
                 existing.Amount = dto.Amount; // upsert
+                if (note is not null) existing.Description = note;
+            }
             else
                 _db.PayOccurrenceOverrides.Add(new PayOccurrenceOverride
                 {
                     IncomeScheduleId = job.Id,
                     PayDate = payDate,
                     Amount = dto.Amount,
+                    Description = note,
                     UserId = userId,
                 });
             await _db.SaveChangesAsync(ct);
@@ -265,7 +270,7 @@ public class IncomeScheduleService : IIncomeScheduleService
         _db.Incomes.Add(new Income
         {
             Amount = dto.Amount,
-            Description = job.Name,
+            Description = string.IsNullOrWhiteSpace(dto.Description) ? job.Name : dto.Description.Trim(),
             Date = dto.Date.Date,
             Currency = job.Currency,
             PaymentMethodId = job.PaymentMethodId,

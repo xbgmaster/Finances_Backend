@@ -192,12 +192,13 @@ public static class IncomeSchedulePoster
         if (AlreadyPosted(db, schedule, payDay)) return 0;
 
         // Use overridden amount if the user adjusted this specific occurrence.
-        var amount = overrides?.FirstOrDefault(o => o.PayDate.Date == payDay.Date)?.Amount ?? schedule.Amount;
+        var ov = overrides?.FirstOrDefault(o => o.PayDate.Date == payDay.Date);
+        var amount = ov?.Amount ?? schedule.Amount;
         if (amount <= 0) return 0;
         db.Incomes.Add(new Income
         {
             Amount = amount,
-            Description = schedule.Name,
+            Description = string.IsNullOrWhiteSpace(ov?.Description) ? schedule.Name : ov!.Description!.Trim(),
             Date = payDay,
             Currency = schedule.Currency,
             PaymentMethodId = schedule.PaymentMethodId,

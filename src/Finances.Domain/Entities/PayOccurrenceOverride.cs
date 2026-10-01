@@ -17,6 +17,9 @@ public class PayOccurrenceOverride
     /// <summary>Overridden amount for this occurrence.</summary>
     public decimal Amount { get; set; }
 
+    /// <summary>Optional note shown on the income when this occurrence is posted.</summary>
+    public string? Description { get; set; }
+
     public string UserId { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
