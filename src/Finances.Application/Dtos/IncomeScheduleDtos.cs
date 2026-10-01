@@ -113,7 +113,8 @@ public record WorkShiftDto(
     decimal Amount,
     string Currency,
     bool Posted,
-    int? IncomeId);
+    int? IncomeId,
+    string? Description);
 
 public class WorkShiftCreateDto
 {
@@ -128,6 +129,9 @@ public class WorkShiftCreateDto
 
     /// <summary>Rate for this shift. Empty/null falls back to the job's default rate.</summary>
     public decimal? HourlyRate { get; set; }
+
+    [MaxLength(200)]
+    public string? Description { get; set; }
 }
 
 public class WorkShiftUpdateDto
@@ -139,6 +143,9 @@ public class WorkShiftUpdateDto
     public decimal Hours { get; set; }
 
     public decimal? HourlyRate { get; set; }
+
+    [MaxLength(200)]
+    public string? Description { get; set; }
 }
 
 /// <summary>A direct one-off payment attributed to a job, posted as income on the given day.</summary>

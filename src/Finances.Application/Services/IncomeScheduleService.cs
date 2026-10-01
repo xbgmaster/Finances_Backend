@@ -189,6 +189,7 @@ public class IncomeScheduleService : IIncomeScheduleService
             HourlyRate = rate,
             Amount = Math.Round(dto.Hours * rate, 2, MidpointRounding.AwayFromZero),
             Currency = job.Currency,
+            Description = string.IsNullOrWhiteSpace(dto.Description) ? null : dto.Description.Trim(),
             UserId = userId,
             CreatedAt = DateTime.UtcNow,
         };
@@ -215,6 +216,7 @@ public class IncomeScheduleService : IIncomeScheduleService
         shift.Date = dto.Date.Date;
         shift.Hours = dto.Hours;
         shift.HourlyRate = rate;
+        shift.Description = string.IsNullOrWhiteSpace(dto.Description) ? null : dto.Description.Trim();
         shift.Amount = Math.Round(dto.Hours * rate, 2, MidpointRounding.AwayFromZero);
         await _db.SaveChangesAsync(ct);
         return MapShift(shift);
@@ -263,6 +265,18 @@ public class IncomeScheduleService : IIncomeScheduleService
                     UserId = userId,
                 });
             await _db.SaveChangesAsync(ct);
+
+            // A pay day that was already posted keeps the old income row. Refresh it so an edit
+            // (amount or description) shows up instead of waiting for a post that will now skip it.
+            var next = payDate.AddDays(1);
+            var posted = await _db.Incomes.FirstOrDefaultAsync(
+                i => i.IncomeScheduleId == job.Id && i.UserId == userId && i.Date >= payDate && i.Date < next, ct);
+            if (posted is not null)
+            {
+                posted.Amount = dto.Amount;
+                if (note is not null) posted.Description = note;
+                await _db.SaveChangesAsync(ct);
+            }
             return;
         }
 
@@ -387,5 +401,5 @@ public class IncomeScheduleService : IIncomeScheduleService
     private static WorkShiftDto MapShift(WorkShift w) => new(
         w.Id, w.IncomeScheduleId, w.IncomeSchedule?.Name ?? string.Empty,
         w.Date, w.Hours, w.HourlyRate, w.Amount, w.Currency,
-        w.IncomeId != null, w.IncomeId);
+        w.IncomeId != null, w.IncomeId, w.Description);
 }

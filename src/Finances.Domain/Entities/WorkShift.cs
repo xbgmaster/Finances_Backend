@@ -25,6 +25,9 @@ public class WorkShift
     /// <summary>Computed earnings for the shift (Hours × HourlyRate), stored for fast totals.</summary>
     public decimal Amount { get; set; }
 
+    /// <summary>Optional note for this shift.</summary>
+    public string? Description { get; set; }
+
     /// <summary>ISO currency code, inherited from the job.</summary>
     public string Currency { get; set; } = string.Empty;
 

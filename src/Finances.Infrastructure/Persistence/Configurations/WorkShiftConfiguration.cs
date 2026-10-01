@@ -13,6 +13,7 @@ public class WorkShiftConfiguration : IEntityTypeConfiguration<WorkShift>
         builder.Property(s => s.HourlyRate).HasPrecision(18, 2);
         builder.Property(s => s.Amount).HasPrecision(18, 2);
         builder.Property(s => s.Currency).IsRequired().HasMaxLength(3);
+        builder.Property(s => s.Description).HasMaxLength(200);
 
         builder.Property(s => s.UserId).IsRequired().HasMaxLength(450);
         builder.HasIndex(s => s.UserId);
