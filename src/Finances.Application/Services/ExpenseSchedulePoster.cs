@@ -95,6 +95,23 @@ public static class ExpenseSchedulePoster
         }
     }
 
+    private static bool IsChargeDate(ExpenseSchedule s, DateTime day) =>
+        EnumerateChargeDates(s, day.Date.AddDays(-1), day.Date).Any(d => d.Date == day.Date);
+
+    private static bool ChargeExists(IFinanceDbContext db, ExpenseSchedule schedule, DateTime chargeDay)
+    {
+        var day = chargeDay.Date;
+        var next = day.AddDays(1);
+        return db.Expenses.Local.Any(e =>
+                e.ExpenseScheduleId == schedule.Id
+                && e.UserId == schedule.UserId
+                && e.Date >= day && e.Date < next)
+            || db.Expenses.Any(e =>
+                e.ExpenseScheduleId == schedule.Id
+                && e.UserId == schedule.UserId
+                && e.Date >= day && e.Date < next);
+    }
+
     /// <summary>Posts due subscription charges up to today. Does NOT save — caller does.</summary>
     public static int PostDue(IFinanceDbContext db, ExpenseSchedule schedule, DateTime today)
     {
@@ -103,20 +120,17 @@ public static class ExpenseSchedulePoster
 
         if (!TryParseMarker(schedule.LastPostedPeriod, out var lastDate))
             lastDate = MostRecentOnOrBefore(schedule, today) ?? today;
+        else if (lastDate.Date <= today.Date
+                 && IsChargeDate(schedule, lastDate)
+                 && !ChargeExists(db, schedule, lastDate))
+        {
+            lastDate = lastDate.AddDays(-1);
+        }
 
         var posted = 0;
         foreach (var chargeDay in EnumerateChargeDates(schedule, lastDate, today))
         {
-            var day = chargeDay.Date;
-            var next = day.AddDays(1);
-            var exists = db.Expenses.Local.Any(e =>
-                    e.ExpenseScheduleId == schedule.Id
-                    && e.UserId == schedule.UserId
-                    && e.Date >= day && e.Date < next)
-                || db.Expenses.Any(e =>
-                    e.ExpenseScheduleId == schedule.Id
-                    && e.UserId == schedule.UserId
-                    && e.Date >= day && e.Date < next);
+            var exists = ChargeExists(db, schedule, chargeDay);
             if (exists)
             {
                 schedule.LastPostedPeriod = chargeDay.ToString("yyyyMMdd");

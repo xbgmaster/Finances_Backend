@@ -3,6 +3,10 @@
   "WorkspaceRootPath": "C:\\Users\\aleja\\OneDrive\\Desktop\\Finances\\finances-backend\\Finances_Backend\\",
   "Documents": [
     {
+      "AbsoluteMoniker": "D:0:0:{12C21556-1789-400E-A490-B3D7FE079BDF}|src\\Finances.Infrastructure\\Finances.Infrastructure.csproj|c:\\users\\aleja\\onedrive\\desktop\\finances\\finances-backend\\finances_backend\\src\\finances.infrastructure\\persistence\\migrations\\20261001020000_addworkshiftdescription.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{12C21556-1789-400E-A490-B3D7FE079BDF}|src\\Finances.Infrastructure\\Finances.Infrastructure.csproj|solutionrelative:src\\finances.infrastructure\\persistence\\migrations\\20261001020000_addworkshiftdescription.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
       "AbsoluteMoniker": "D:0:0:{CE644BFE-F283-45D4-91B3-56559EF17DBD}|src\\Finances.Api\\Finances.Api.csproj|c:\\users\\aleja\\onedrive\\desktop\\finances\\finances-backend\\finances_backend\\src\\finances.api\\appsettings.development.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
       "RelativeMoniker": "D:0:0:{CE644BFE-F283-45D4-91B3-56559EF17DBD}|src\\Finances.Api\\Finances.Api.csproj|solutionrelative:src\\finances.api\\appsettings.development.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
     },
@@ -37,7 +41,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 9,
+          "SelectedChildIndex": 3,
           "Children": [
             {
               "$type": "Bookmark",
@@ -53,7 +57,20 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 0,
+              "Title": "20261001020000_AddWorkShiftDescription.cs",
+              "DocumentMoniker": "C:\\Users\\aleja\\OneDrive\\Desktop\\Finances\\finances-backend\\Finances_Backend\\src\\Finances.Infrastructure\\Persistence\\Migrations\\20261001020000_AddWorkShiftDescription.cs",
+              "RelativeDocumentMoniker": "src\\Finances.Infrastructure\\Persistence\\Migrations\\20261001020000_AddWorkShiftDescription.cs",
+              "ToolTip": "C:\\Users\\aleja\\OneDrive\\Desktop\\Finances\\finances-backend\\Finances_Backend\\src\\Finances.Infrastructure\\Persistence\\Migrations\\20261001020000_AddWorkShiftDescription.cs",
+              "RelativeToolTip": "src\\Finances.Infrastructure\\Persistence\\Migrations\\20261001020000_AddWorkShiftDescription.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA0AAAAkAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-10-01T02:04:53.511Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
               "Title": "Microsoft.NET.Sdk.targets",
               "DocumentMoniker": "C:\\Program Files\\dotnet\\sdk\\8.0.404\\Sdks\\Microsoft.NET.Sdk\\targets\\Microsoft.NET.Sdk.targets",
               "RelativeDocumentMoniker": "..\\..\\..\\..\\..\\..\\..\\Program Files\\dotnet\\sdk\\8.0.404\\Sdks\\Microsoft.NET.Sdk\\targets\\Microsoft.NET.Sdk.targets",
@@ -61,12 +78,11 @@
               "RelativeToolTip": "..\\..\\..\\..\\..\\..\\..\\Program Files\\dotnet\\sdk\\8.0.404\\Sdks\\Microsoft.NET.Sdk\\targets\\Microsoft.NET.Sdk.targets",
               "ViewState": "AgIAAK8CAAAAAAAAAAAjwMQCAAAEAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003801|",
-              "WhenOpened": "2026-10-01T00:58:34.756Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-10-01T00:58:34.756Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 2,
               "Title": "Program.cs",
               "DocumentMoniker": "C:\\Users\\aleja\\OneDrive\\Desktop\\Finances\\finances-backend\\Finances_Backend\\src\\Finances.Api\\Program.cs",
               "RelativeDocumentMoniker": "src\\Finances.Api\\Program.cs",
@@ -74,12 +90,11 @@
               "RelativeToolTip": "src\\Finances.Api\\Program.cs",
               "ViewState": "AgIAAEgAAAAAAAAAAAAQwCoAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-09-11T06:23:37.267Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-09-11T06:23:37.267Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 4,
+              "DocumentIndex": 5,
               "Title": "BrevoEmailSender.cs",
               "DocumentMoniker": "C:\\Users\\aleja\\OneDrive\\Desktop\\Finances\\finances-backend\\Finances_Backend\\src\\Finances.Infrastructure\\Email\\BrevoEmailSender.cs",
               "RelativeDocumentMoniker": "src\\Finances.Infrastructure\\Email\\BrevoEmailSender.cs",
@@ -91,7 +106,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 5,
+              "DocumentIndex": 6,
               "Title": "CategoriesController.cs",
               "DocumentMoniker": "C:\\Users\\aleja\\OneDrive\\Desktop\\Finances\\finances-backend\\Finances_Backend\\src\\Finances.Api\\Controllers\\CategoriesController.cs",
               "RelativeDocumentMoniker": "src\\Finances.Api\\Controllers\\CategoriesController.cs",
@@ -103,7 +118,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 6,
+              "DocumentIndex": 7,
               "Title": "GetCreditsQuery.cs",
               "DocumentMoniker": "C:\\Users\\aleja\\OneDrive\\Desktop\\Finances\\finances-backend\\Finances_Backend\\src\\Finances.Application\\Credits\\Queries\\GetCredits\\GetCreditsQuery.cs",
               "RelativeDocumentMoniker": "src\\Finances.Application\\Credits\\Queries\\GetCredits\\GetCreditsQuery.cs",
@@ -115,7 +130,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
+              "DocumentIndex": 3,
               "Title": "appsettings.json",
               "DocumentMoniker": "C:\\Users\\aleja\\OneDrive\\Desktop\\Finances\\finances-backend\\Finances_Backend\\src\\Finances.Api\\appsettings.json",
               "RelativeDocumentMoniker": "src\\Finances.Api\\appsettings.json",
@@ -123,12 +138,11 @@
               "RelativeToolTip": "src\\Finances.Api\\appsettings.json",
               "ViewState": "AgIAAAkAAAAAAAAAAAAAABoAAAAXAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
-              "WhenOpened": "2026-08-01T03:18:34.837Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-08-01T03:18:34.837Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 0,
+              "DocumentIndex": 1,
               "Title": "appsettings.Development.json",
               "DocumentMoniker": "C:\\Users\\aleja\\OneDrive\\Desktop\\Finances\\finances-backend\\Finances_Backend\\src\\Finances.Api\\appsettings.Development.json",
               "RelativeDocumentMoniker": "src\\Finances.Api\\appsettings.Development.json",
@@ -136,8 +150,7 @@
               "RelativeToolTip": "src\\Finances.Api\\appsettings.Development.json",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAABIAAAAYAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
-              "WhenOpened": "2026-08-01T03:18:33.576Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-08-01T03:18:33.576Z"
             }
           ]
         }

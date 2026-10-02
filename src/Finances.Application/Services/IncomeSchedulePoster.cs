@@ -125,6 +125,10 @@ public static class IncomeSchedulePoster
         return false;
     }
 
+    /// <summary>True when <paramref name="day"/> is one of this schedule's pay dates.</summary>
+    private static bool IsPayDate(IncomeSchedule s, DateTime day) =>
+        EnumeratePayDates(s, day.Date.AddDays(-1), day.Date).Any(d => d.Date == day.Date);
+
     /// <summary>Pay dates strictly after <paramref name="afterExclusive"/> and on/before <paramref name="until"/>, in order.</summary>
     private static IEnumerable<DateTime> EnumeratePayDates(IncomeSchedule s, DateTime afterExclusive, DateTime until)
     {
@@ -172,6 +176,15 @@ public static class IncomeSchedulePoster
 
         if (!TryParseMarker(schedule.LastPostedPeriod, out var lastDate))
             lastDate = MostRecentPayOnOrBefore(schedule, today) ?? today;
+        else if (schedule.PayType != PayType.Hourly
+                 && lastDate.Date <= today.Date
+                 && IsPayDate(schedule, lastDate)
+                 && !AlreadyPosted(db, schedule, lastDate))
+        {
+            // The marker moved forward, then the income for that day was deleted.
+            // Step back so this pay date is posted again.
+            lastDate = lastDate.AddDays(-1);
+        }
 
         var posted = 0;
         foreach (var payDay in EnumeratePayDates(schedule, lastDate, today))
