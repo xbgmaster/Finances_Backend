@@ -85,6 +85,7 @@ builder.Services.AddCors(options =>
                 "http://localhost:5174",
                 "http://127.0.0.1:5173",
                 "https://finances-frontend-y0sk.onrender.com",
+                "https://tishe-frontend.xbgalejandro.workers.dev",
                 "https://localhost",
                 "http://localhost",
                 "capacitor://localhost",
