@@ -36,6 +36,9 @@ public class UpdatePaymentCommandHandler : IRequestHandler<UpdatePaymentCommand,
             ?? throw new NotFoundException("El credito no existe.");
 
         var baseCurrency = (await _profile.GetAsync(cancellationToken)).Currency;
+        var expenseCurrency = CreditPaymentSync.ExpenseCurrency(credit, baseCurrency);
+        var paymentMethodId = await CreditPaymentSync.ResolvePaymentMethodIdAsync(
+            _db, request.PaymentMethodId, expenseCurrency, userId, cancellationToken);
 
         var type = Enum.Parse<CreditPaymentType>(request.Type, ignoreCase: true);
         payment.Amount = request.Amount;
@@ -46,7 +49,7 @@ public class UpdatePaymentCommandHandler : IRequestHandler<UpdatePaymentCommand,
             : null;
         payment.Note = string.IsNullOrWhiteSpace(request.Note) ? null : request.Note.Trim();
 
-        await SyncMirroredExpenseAsync(credit, payment, baseCurrency, userId, cancellationToken);
+        await SyncMirroredExpenseAsync(credit, payment, baseCurrency, userId, paymentMethodId, cancellationToken);
 
         await _db.SaveChangesAsync(cancellationToken);
 
@@ -58,7 +61,7 @@ public class UpdatePaymentCommandHandler : IRequestHandler<UpdatePaymentCommand,
     }
 
     private async Task SyncMirroredExpenseAsync(
-        Credit credit, CreditPayment payment, string baseCurrency, string userId, CancellationToken ct)
+        Credit credit, CreditPayment payment, string baseCurrency, string userId, int? paymentMethodId, CancellationToken ct)
     {
         var mirror = await _db.Expenses
             .FirstOrDefaultAsync(e => e.CreditPaymentId == payment.Id && e.UserId == userId, ct);
@@ -69,11 +72,13 @@ public class UpdatePaymentCommandHandler : IRequestHandler<UpdatePaymentCommand,
             mirror.Currency = CreditPaymentSync.ExpenseCurrency(credit, baseCurrency);
             mirror.Date = payment.Date;
             mirror.Description = CreditPaymentSync.Describe(credit, payment);
+            mirror.PaymentMethodId = paymentMethodId;
             return;
         }
 
         // No mirror yet (legacy payment created before this feature): create one now.
         var category = await CreditPaymentSync.GetOrCreateDebtCategoryAsync(_db, userId, ct);
-        _db.Expenses.Add(CreditPaymentSync.BuildMirrorExpense(credit, payment, category, baseCurrency, userId));
+        _db.Expenses.Add(CreditPaymentSync.BuildMirrorExpense(
+            credit, payment, category, baseCurrency, userId, paymentMethodId));
     }
 }

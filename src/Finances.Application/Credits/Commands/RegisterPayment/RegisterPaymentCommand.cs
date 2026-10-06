@@ -21,4 +21,7 @@ public record RegisterPaymentCommand : IRequest<CreditSummaryDto>
 
     /// <summary>For a prepayment: "ReduceTerm" or "ReduceInstallment". Null uses the credit default.</summary>
     public string? Effect { get; init; }
+
+    /// <summary>Account or card that funded the payment. Null keeps the expense unassigned.</summary>
+    public int? PaymentMethodId { get; init; }
 }

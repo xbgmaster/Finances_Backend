@@ -35,6 +35,9 @@ public class RegisterPaymentCommandHandler : IRequestHandler<RegisterPaymentComm
             : (PrepaymentEffect?)null;
 
         var baseCurrency = (await _profile.GetAsync(cancellationToken)).Currency;
+        var expenseCurrency = CreditPaymentSync.ExpenseCurrency(credit, baseCurrency);
+        var paymentMethodId = await CreditPaymentSync.ResolvePaymentMethodIdAsync(
+            _db, request.PaymentMethodId, expenseCurrency, userId, cancellationToken);
 
         var payment = new CreditPayment
         {
@@ -53,7 +56,8 @@ public class RegisterPaymentCommandHandler : IRequestHandler<RegisterPaymentComm
         // up in the spending reports. The expense currency/amount is whatever the user actually
         // spent (base currency with an exchange rate, or the credit's own currency directly).
         var category = await CreditPaymentSync.GetOrCreateDebtCategoryAsync(_db, userId, cancellationToken);
-        _db.Expenses.Add(CreditPaymentSync.BuildMirrorExpense(credit, payment, category, baseCurrency, userId));
+        _db.Expenses.Add(CreditPaymentSync.BuildMirrorExpense(
+            credit, payment, category, baseCurrency, userId, paymentMethodId));
 
         await _db.SaveChangesAsync(cancellationToken);
 

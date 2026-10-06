@@ -31,7 +31,9 @@ public record CreditDto(
 
 /// <summary>A recorded payment against a credit. <see cref="Type"/> is "Installment" or
 /// "PrincipalPrepayment"; <see cref="Effect"/> is set only for prepayments.</summary>
-public record CreditPaymentDto(int Id, decimal Amount, DateTime Date, string? Note, string Type, string? Effect);
+public record CreditPaymentDto(
+    int Id, decimal Amount, DateTime Date, string? Note, string Type, string? Effect,
+    int? PaymentMethodId = null, string? PaymentMethodName = null);
 
 /// <summary>The full "smart summary" of a credit as of today, entirely derived.</summary>
 public record CreditSummaryDto(

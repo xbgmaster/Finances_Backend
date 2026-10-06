@@ -21,7 +21,8 @@ public static class CreditPaymentSync
     /// <summary>Builds the mirrored expense linked to the payment (uses navigation properties so it
     /// works before the payment has an id).</summary>
     public static Expense BuildMirrorExpense(
-        Credit credit, CreditPayment payment, Category category, string baseCurrency, string userId) => new()
+        Credit credit, CreditPayment payment, Category category, string baseCurrency, string userId,
+        int? paymentMethodId = null) => new()
     {
         Amount = payment.Amount,
         Description = Describe(credit, payment),
@@ -29,8 +30,31 @@ public static class CreditPaymentSync
         Category = category,
         CreditPayment = payment,
         Currency = ExpenseCurrency(credit, baseCurrency),
+        PaymentMethodId = paymentMethodId,
         UserId = userId
     };
+
+    /// <summary>
+    /// Confirms the account belongs to the user and matches the expense currency.
+    /// Null means the payment stays unassigned.
+    /// </summary>
+    public static async Task<int?> ResolvePaymentMethodIdAsync(
+        IFinanceDbContext db, int? paymentMethodId, string expenseCurrency, string userId, CancellationToken ct)
+    {
+        if (paymentMethodId is null or <= 0) return null;
+
+        var method = await db.PaymentMethods
+            .FirstOrDefaultAsync(m => m.Id == paymentMethodId && m.UserId == userId && !m.Archived, ct)
+            ?? throw new NotFoundException("La cuenta no existe.");
+
+        var methodCurrency = string.IsNullOrWhiteSpace(method.Currency)
+            ? null
+            : method.Currency.ToUpperInvariant();
+        if (methodCurrency != null && methodCurrency != expenseCurrency)
+            throw new ValidationException("La cuenta debe estar en la misma moneda del credito.");
+
+        return method.Id;
+    }
 
     /// <summary>Gets the user's system "Debt payments" category, creating it lazily if missing.</summary>
     public static async Task<Category> GetOrCreateDebtCategoryAsync(
