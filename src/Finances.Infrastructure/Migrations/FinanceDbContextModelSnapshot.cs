@@ -772,6 +772,9 @@ namespace Finances.Infrastructure.Migrations
                     b.Property<string>("FullName")
                         .HasColumnType("text");
 
+                    b.Property<DateTime?>("ActivityReminderOn")
+                        .HasColumnType("timestamp without time zone");
+
                     b.Property<DateTime?>("LastLoginAt")
                         .HasColumnType("timestamp without time zone");
 

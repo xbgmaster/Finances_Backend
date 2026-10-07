@@ -132,6 +132,8 @@ public static class DependencyInjection
         if (expenseAutoPost.Enabled)
             services.AddHostedService<Scheduling.ExpenseAutoPostService>();
 
+        services.AddHostedService<ActivityReminderService>();
+
         return services;
     }
 }
