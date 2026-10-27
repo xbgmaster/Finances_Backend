@@ -12,7 +12,14 @@ public static class CategoryBudgetHelper
     /// <summary>The budget for the given currency, or null when the category has none for it.</summary>
     public static decimal? Effective(Category c, string currency, string baseCurrency)
     {
-        if (c.Budgets is not null && c.Budgets.TryGetValue(currency, out var v)) return v;
+        if (c.Budgets is not null)
+        {
+            foreach (var pair in c.Budgets)
+            {
+                if (string.Equals(pair.Key, currency, StringComparison.OrdinalIgnoreCase))
+                    return pair.Value;
+            }
+        }
         if (string.Equals(currency, baseCurrency, StringComparison.OrdinalIgnoreCase)) return c.MonthlyBudget;
         return null;
     }
@@ -30,10 +37,16 @@ public static class CategoryBudgetHelper
     /// <summary>Sets (or clears) the budget for a currency and keeps the base mirror in sync.</summary>
     public static void Set(Category c, string currency, decimal? amount, string baseCurrency)
     {
-        c.Budgets ??= new Dictionary<string, decimal>();
+        var next = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
+        if (c.Budgets is not null)
+        {
+            foreach (var pair in c.Budgets)
+                next[pair.Key.ToUpperInvariant()] = pair.Value;
+        }
         var clear = amount is null || amount <= 0;
-        if (clear) c.Budgets.Remove(currency);
-        else c.Budgets[currency] = amount!.Value;
+        if (clear) next.Remove(currency);
+        else next[currency.ToUpperInvariant()] = amount!.Value;
+        c.Budgets = next;
 
         if (string.Equals(currency, baseCurrency, StringComparison.OrdinalIgnoreCase))
             c.MonthlyBudget = clear ? null : amount;

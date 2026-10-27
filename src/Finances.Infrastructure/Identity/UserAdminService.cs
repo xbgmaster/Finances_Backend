@@ -28,7 +28,8 @@ public class UserAdminService : IUserAdminService
     public async Task<PagedResult<AdminUserDto>> GetUsersAsync(UserFilter filter, CancellationToken ct = default)
     {
         var adminIds = await GetAdminIdsAsync(ct);
-        var query = ApplyFilter(_users.Users.AsQueryable(), filter, adminIds);
+        var premiumIds = await GetRoleIdsAsync(AuthService.PremiumRole, ct);
+        var query = ApplyFilter(_users.Users.AsQueryable(), filter, adminIds, premiumIds);
 
         var total = await query.CountAsync(ct);
         var page = Math.Max(1, filter.Page);
@@ -40,7 +41,6 @@ public class UserAdminService : IUserAdminService
             .Take(pageSize)
             .ToListAsync(ct);
 
-        var premiumIds = await GetRoleIdsAsync(AuthService.PremiumRole, ct);
         var counts = await ExpenseCountsAsync(users.Select(u => u.Id).ToList(), ct);
         var items = users.Select(u => Map(u, adminIds, premiumIds, counts)).ToList();
         return new PagedResult<AdminUserDto>(items, total, page, pageSize);
@@ -108,7 +108,7 @@ public class UserAdminService : IUserAdminService
     {
         var adminIds = await GetAdminIdsAsync(ct);
         var premiumIdsExport = await GetRoleIdsAsync(AuthService.PremiumRole, ct);
-        var query = ApplyFilter(_users.Users.AsQueryable(), filter, adminIds);
+        var query = ApplyFilter(_users.Users.AsQueryable(), filter, adminIds, premiumIdsExport);
         var users = await query.OrderByDescending(u => u.CreatedAt).ToListAsync(ct);
         var counts = await ExpenseCountsAsync(users.Select(u => u.Id).ToList(), ct);
 
@@ -176,7 +176,7 @@ public class UserAdminService : IUserAdminService
     }
 
     private IQueryable<ApplicationUser> ApplyFilter(
-        IQueryable<ApplicationUser> query, UserFilter filter, HashSet<string> adminIds)
+        IQueryable<ApplicationUser> query, UserFilter filter, HashSet<string> adminIds, HashSet<string> premiumIds)
     {
         if (!string.IsNullOrWhiteSpace(filter.Search))
         {
@@ -190,8 +190,10 @@ public class UserAdminService : IUserAdminService
 
         if (string.Equals(filter.Role, "Admin", StringComparison.OrdinalIgnoreCase))
             query = query.Where(u => adminIds.Contains(u.Id));
+        else if (string.Equals(filter.Role, "Premium", StringComparison.OrdinalIgnoreCase))
+            query = query.Where(u => premiumIds.Contains(u.Id));
         else if (string.Equals(filter.Role, "User", StringComparison.OrdinalIgnoreCase))
-            query = query.Where(u => !adminIds.Contains(u.Id));
+            query = query.Where(u => !adminIds.Contains(u.Id) && !premiumIds.Contains(u.Id));
 
         var activeSince = DateTime.UtcNow.AddDays(-30);
         var status = filter.Status?.Trim();
@@ -203,6 +205,11 @@ public class UserAdminService : IUserAdminService
             query = query.Where(u => u.LastLoginAt == null);
         else if (string.Equals(status, "Pending", StringComparison.OrdinalIgnoreCase))
             query = query.Where(u => !u.OnboardingCompleted);
+        else if (string.Equals(status, "New", StringComparison.OrdinalIgnoreCase))
+        {
+            var monthStart = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1);
+            query = query.Where(u => u.CreatedAt >= monthStart);
+        }
         else if (string.Equals(status, "NoActivity", StringComparison.OrdinalIgnoreCase))
         {
             var withActivity = _db.Expenses.Select(e => e.UserId);
