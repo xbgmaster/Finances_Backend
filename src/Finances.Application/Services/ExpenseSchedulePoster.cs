@@ -95,9 +95,6 @@ public static class ExpenseSchedulePoster
         }
     }
 
-    private static bool IsChargeDate(ExpenseSchedule s, DateTime day) =>
-        EnumerateChargeDates(s, day.Date.AddDays(-1), day.Date).Any(d => d.Date == day.Date);
-
     private static bool ChargeExists(IFinanceDbContext db, ExpenseSchedule schedule, DateTime chargeDay)
     {
         var day = chargeDay.Date;
@@ -120,12 +117,8 @@ public static class ExpenseSchedulePoster
 
         if (!TryParseMarker(schedule.LastPostedPeriod, out var lastDate))
             lastDate = MostRecentOnOrBefore(schedule, today) ?? today;
-        else if (lastDate.Date <= today.Date
-                 && IsChargeDate(schedule, lastDate)
-                 && !ChargeExists(db, schedule, lastDate))
-        {
-            lastDate = lastDate.AddDays(-1);
-        }
+        // A charge the user deleted stays deleted. The marker already passed that day,
+        // so it is not posted again. Later charge dates still post normally.
 
         var posted = 0;
         foreach (var chargeDay in EnumerateChargeDates(schedule, lastDate, today))
