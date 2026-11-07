@@ -188,6 +188,14 @@ public class ExpenseService : IExpenseService
             expense.ReceiptUrl = null;
         }
 
+        if (expense.ExpenseScheduleId is int updateScheduleId)
+        {
+            var schedule = await _db.ExpenseSchedules
+                .FirstOrDefaultAsync(s => s.Id == updateScheduleId && s.UserId == userId, ct);
+            if (schedule is not null)
+                ExpenseSchedulePoster.AcknowledgeOccurrence(schedule, expense.Date);
+        }
+
         expense.Amount = dto.Amount;
         expense.Description = dto.Description?.Trim() ?? string.Empty;
         expense.Date = dto.Date ?? expense.Date;
@@ -232,7 +240,7 @@ public class ExpenseService : IExpenseService
             var schedule = await _db.ExpenseSchedules
                 .FirstOrDefaultAsync(s => s.Id == scheduleId && s.UserId == userId, ct);
             if (schedule is not null)
-                ExpenseSchedulePoster.SkipCharge(schedule, expense.Date);
+                ExpenseSchedulePoster.AcknowledgeOccurrence(schedule, expense.Date);
         }
 
         _db.Expenses.Remove(expense);

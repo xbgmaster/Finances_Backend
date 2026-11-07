@@ -95,28 +95,52 @@ public static class ExpenseSchedulePoster
         }
     }
 
-    private static bool ChargeExists(IFinanceDbContext db, ExpenseSchedule schedule, DateTime chargeDay)
+    /// <summary>
+    /// The charge day this expense belongs to, even if the user moved it earlier or later in the month.
+    /// </summary>
+    public static DateTime OccurrenceDate(ExpenseSchedule schedule, DateTime expenseDate)
     {
-        var day = chargeDay.Date;
-        var next = day.AddDays(1);
-        return db.Expenses.Local.Any(e =>
-                e.ExpenseScheduleId == schedule.Id
-                && e.UserId == schedule.UserId
-                && e.Date >= day && e.Date < next)
-            || db.Expenses.Any(e =>
-                e.ExpenseScheduleId == schedule.Id
-                && e.UserId == schedule.UserId
-                && e.Date >= day && e.Date < next);
+        var date = expenseDate.Date;
+        var candidates = new List<DateTime>();
+        for (var offset = -1; offset <= 1; offset++)
+        {
+            var shifted = date.AddMonths(offset);
+            candidates.AddRange(ChargeDatesInMonth(schedule, shifted.Year, shifted.Month));
+        }
+        return candidates
+            .OrderBy(d => Math.Abs((d.Date - date).TotalDays))
+            .ThenBy(d => d)
+            .First();
     }
 
     /// <summary>
-    /// Keeps a deleted charge from being posted again. Later charge dates still post.
+    /// Marks the occurrence already handled. A later edit, move, or delete of that month
+    /// must not post the charge again. Later months still post.
     /// </summary>
-    public static void SkipCharge(ExpenseSchedule schedule, DateTime chargeDay)
+    public static void AcknowledgeOccurrence(ExpenseSchedule schedule, DateTime expenseDate)
     {
-        var day = chargeDay.Date;
+        var day = OccurrenceDate(schedule, expenseDate);
         if (!TryParseMarker(schedule.LastPostedPeriod, out var last) || last.Date < day)
             schedule.LastPostedPeriod = day.ToString("yyyyMMdd");
+    }
+
+    private static bool CoversCharge(ExpenseSchedule schedule, DateTime expenseDate, DateTime chargeDay) =>
+        OccurrenceDate(schedule, expenseDate).Date == chargeDay.Date;
+
+    private static bool ChargeExists(IFinanceDbContext db, ExpenseSchedule schedule, DateTime chargeDay)
+    {
+        bool Covers(DateTime expenseDate) => CoversCharge(schedule, expenseDate, chargeDay);
+        if (db.Expenses.Local.Any(e =>
+                e.ExpenseScheduleId == schedule.Id
+                && e.UserId == schedule.UserId
+                && Covers(e.Date)))
+            return true;
+
+        var dates = db.Expenses
+            .Where(e => e.ExpenseScheduleId == schedule.Id && e.UserId == schedule.UserId)
+            .Select(e => e.Date)
+            .ToList();
+        return dates.Any(Covers);
     }
 
     /// <summary>Posts due subscription charges up to today. Does NOT save — caller does.</summary>
