@@ -109,6 +109,16 @@ public static class ExpenseSchedulePoster
                 && e.Date >= day && e.Date < next);
     }
 
+    /// <summary>
+    /// Keeps a deleted charge from being posted again. Later charge dates still post.
+    /// </summary>
+    public static void SkipCharge(ExpenseSchedule schedule, DateTime chargeDay)
+    {
+        var day = chargeDay.Date;
+        if (!TryParseMarker(schedule.LastPostedPeriod, out var last) || last.Date < day)
+            schedule.LastPostedPeriod = day.ToString("yyyyMMdd");
+    }
+
     /// <summary>Posts due subscription charges up to today. Does NOT save — caller does.</summary>
     public static int PostDue(IFinanceDbContext db, ExpenseSchedule schedule, DateTime today)
     {

@@ -135,9 +135,14 @@ public class ExpenseScheduleService : IExpenseScheduleService
             .Where(s => s.UserId == userId && s.Active && s.AutoPost)
             .ToListAsync(ct);
         var posted = 0;
+        var markerChanged = false;
         foreach (var s in schedules)
+        {
+            var before = s.LastPostedPeriod;
             posted += ExpenseSchedulePoster.PostDue(_db, s, today);
-        if (posted > 0) await _db.SaveChangesAsync(ct);
+            if (s.LastPostedPeriod != before) markerChanged = true;
+        }
+        if (posted > 0 || markerChanged) await _db.SaveChangesAsync(ct);
         return posted;
     }
 

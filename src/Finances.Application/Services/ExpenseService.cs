@@ -227,6 +227,14 @@ public class ExpenseService : IExpenseService
         if (!string.IsNullOrEmpty(expense.ReceiptUrl))
             _storage.Delete(expense.ReceiptUrl);
 
+        if (expense.ExpenseScheduleId is int scheduleId)
+        {
+            var schedule = await _db.ExpenseSchedules
+                .FirstOrDefaultAsync(s => s.Id == scheduleId && s.UserId == userId, ct);
+            if (schedule is not null)
+                ExpenseSchedulePoster.SkipCharge(schedule, expense.Date);
+        }
+
         _db.Expenses.Remove(expense);
         await _db.SaveChangesAsync(ct);
     }
