@@ -262,10 +262,40 @@ public class UserAdminService : IUserAdminService
         foreach (var r in currentRoles) await _users.RemoveFromRoleAsync(user, r);
         await _users.AddToRoleAsync(user, role);
 
+        // The previous role's overrides mean the opposite on the new role
+        // (a granted module becomes a hidden one). Take the target role's saved set.
+        user.DisabledFeatures = await FeaturesForRoleAsync(role, user.Id, ct);
+        var saved = await _users.UpdateAsync(user);
+        if (!saved.Succeeded)
+            throw new ValidationException(string.Join(" ", saved.Errors.Select(e => e.Description)));
+
         var adminIds = await GetAdminIdsAsync(ct);
         var premiumIds = await GetRoleIdsAsync(AuthService.PremiumRole, ct);
         var counts = await ExpenseCountsAsync(new[] { user.Id }, ct);
         return Map(user, adminIds, premiumIds, counts);
+    }
+
+    /// <summary>
+    /// Feature overrides already saved for this role, so a promotion or demotion
+    /// matches the menus that role currently has. Empty when the role uses its defaults.
+    /// </summary>
+    private async Task<string?> FeaturesForRoleAsync(string role, string exceptUserId, CancellationToken ct)
+    {
+        var peerIds = await GetRoleIdsAsync(role, ct);
+        peerIds.Remove(exceptUserId);
+        if (peerIds.Count == 0) return null;
+
+        var stored = await _users.Users
+            .Where(u => peerIds.Contains(u.Id))
+            .Select(u => u.DisabledFeatures)
+            .ToListAsync(ct);
+
+        var majority = stored
+            .Select(v => FeatureFlags.Serialize(FeatureFlags.Parse(v)) ?? "")
+            .GroupBy(v => v)
+            .OrderByDescending(g => g.Count())
+            .First().Key;
+        return majority.Length == 0 ? null : majority;
     }
 
     private async Task<HashSet<string>> GetRoleIdsAsync(string roleName, CancellationToken ct)

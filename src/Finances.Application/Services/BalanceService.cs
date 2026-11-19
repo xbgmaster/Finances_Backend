@@ -23,63 +23,85 @@ public class BalanceService : IBalanceService
         var userId = _current.RequireUserId();
         var baseCurrency = (await _profile.GetAsync(ct)).Currency;
 
-        // Credit cards are treated as debt, not cash: their charges do NOT reduce the available
-        // balance (you owe the card, you haven't spent cash yet). Cash only moves when the card
-        // is paid (a card payment funded from a cash/debit account).
-        var creditCardIds = await _db.PaymentMethods
-            .Where(p => p.UserId == userId && p.Type == PaymentMethodType.CreditCard)
-            .Select(p => p.Id)
+        // Available balance is the cash you can spend: the sum of debit and cash accounts
+        // in that currency. A charge on a credit card is debt, not cash. A movement with no
+        // account is not part of any balance. This matches the Balance shown on each account.
+        var wallets = await _db.PaymentMethods
+            .Where(p => p.UserId == userId && !p.Archived && p.Type != PaymentMethodType.CreditCard)
+            .Select(p => new { p.Id, Currency = p.Currency ?? baseCurrency })
             .ToListAsync(ct);
+        var walletIds = wallets.Select(w => w.Id).ToList();
+        var currencyById = wallets.ToDictionary(
+            w => w.Id,
+            w => w.Currency.ToUpperInvariant());
 
         var incomes = await _db.Incomes
-            .Where(i => i.UserId == userId
-                && (i.PaymentMethodId == null || !creditCardIds.Contains(i.PaymentMethodId.Value)))
-            .Select(i => new { i.Amount, i.Currency })
+            .Where(i => i.UserId == userId && i.PaymentMethodId != null && walletIds.Contains(i.PaymentMethodId.Value))
+            .Select(i => new { i.Amount, i.Currency, AccountId = i.PaymentMethodId!.Value })
             .ToListAsync(ct);
         var expenses = await _db.Expenses
-            .Where(e => e.UserId == userId
-                && (e.PaymentMethodId == null || !creditCardIds.Contains(e.PaymentMethodId.Value)))
-            .Select(e => new { e.Amount, e.Currency })
+            .Where(e => e.UserId == userId && e.PaymentMethodId != null && walletIds.Contains(e.PaymentMethodId.Value))
+            .Select(e => new { e.Amount, e.Currency, AccountId = e.PaymentMethodId!.Value })
             .ToListAsync(ct);
         var exchanges = await _db.CurrencyExchanges
-            .Where(x => x.UserId == userId)
-            .Select(x => new { x.FromCurrency, x.FromAmount, x.ToCurrency, x.ToAmount })
+            .Where(x => x.UserId == userId
+                && ((x.FromPaymentMethodId != null && walletIds.Contains(x.FromPaymentMethodId.Value))
+                    || (x.ToPaymentMethodId != null && walletIds.Contains(x.ToPaymentMethodId.Value))))
+            .Select(x => new { x.FromPaymentMethodId, x.FromCurrency, x.FromAmount, x.ToPaymentMethodId, x.ToCurrency, x.ToAmount })
             .ToListAsync(ct);
-        // Card payments funded from a cash/debit account leave your cash: count them as outflows.
         var cardPayments = await _db.CardPayments
-            .Where(p => p.UserId == userId && p.SourcePaymentMethodId != null)
-            .Select(p => new { p.Amount, p.Currency })
+            .Where(p => p.UserId == userId && p.SourcePaymentMethodId != null
+                && walletIds.Contains(p.SourcePaymentMethodId.Value))
+            .Select(p => new { p.Amount, p.Currency, AccountId = p.SourcePaymentMethodId!.Value })
             .ToListAsync(ct);
 
-        // Group totals per currency (null currency = base currency). Exchanges move money between
-        // currencies without any conversion of the reported totals: they only reduce the source
-        // balance and increase the destination balance.
         var perCurrency = new Dictionary<string, (decimal Income, decimal Expense, decimal ExchangeNet)>(StringComparer.OrdinalIgnoreCase);
+        foreach (var w in wallets)
+            perCurrency.TryAdd(w.Currency.ToUpperInvariant(), (0m, 0m, 0m));
+
+        bool SameAccountCurrency(int accountId, string? movementCurrency)
+        {
+            if (!currencyById.TryGetValue(accountId, out var accountCurrency)) return false;
+            var movement = string.IsNullOrWhiteSpace(movementCurrency) ? baseCurrency : movementCurrency;
+            return string.Equals(accountCurrency, movement, StringComparison.OrdinalIgnoreCase);
+        }
 
         foreach (var i in incomes)
         {
-            var cur = string.IsNullOrWhiteSpace(i.Currency) ? baseCurrency : i.Currency!;
+            if (!SameAccountCurrency(i.AccountId, i.Currency)) continue;
+            var cur = currencyById[i.AccountId];
             var acc = perCurrency.GetValueOrDefault(cur);
             perCurrency[cur] = (acc.Income + i.Amount, acc.Expense, acc.ExchangeNet);
         }
         foreach (var e in expenses)
         {
-            var cur = string.IsNullOrWhiteSpace(e.Currency) ? baseCurrency : e.Currency!;
+            if (!SameAccountCurrency(e.AccountId, e.Currency)) continue;
+            var cur = currencyById[e.AccountId];
             var acc = perCurrency.GetValueOrDefault(cur);
             perCurrency[cur] = (acc.Income, acc.Expense + e.Amount, acc.ExchangeNet);
         }
         foreach (var p in cardPayments)
         {
-            var cur = string.IsNullOrWhiteSpace(p.Currency) ? baseCurrency : p.Currency!;
+            if (!currencyById.TryGetValue(p.AccountId, out var cur)) continue;
             var acc = perCurrency.GetValueOrDefault(cur);
             perCurrency[cur] = (acc.Income, acc.Expense + p.Amount, acc.ExchangeNet);
         }
         foreach (var x in exchanges)
         {
-            var fromAcc = perCurrency.GetValueOrDefault(x.FromCurrency);
-            perCurrency[x.FromCurrency] = (fromAcc.Income, fromAcc.Expense, fromAcc.ExchangeNet - x.FromAmount);
-            var toAcc = perCurrency.GetValueOrDefault(x.ToCurrency);
-            perCurrency[x.ToCurrency] = (toAcc.Income, toAcc.Expense, toAcc.ExchangeNet + x.ToAmount);
+            if (x.FromPaymentMethodId is int fromId
+                && currencyById.TryGetValue(fromId, out var fromCur)
+                && string.Equals(x.FromCurrency, fromCur, StringComparison.OrdinalIgnoreCase))
+            {
+                var acc = perCurrency.GetValueOrDefault(fromCur);
+                perCurrency[fromCur] = (acc.Income, acc.Expense, acc.ExchangeNet - x.FromAmount);
+            }
+            if (x.ToPaymentMethodId is int toId
+                && currencyById.TryGetValue(toId, out var toCur)
+                && string.Equals(x.ToCurrency, toCur, StringComparison.OrdinalIgnoreCase))
+            {
+                var acc = perCurrency.GetValueOrDefault(toCur);
+                perCurrency[toCur] = (acc.Income, acc.Expense, acc.ExchangeNet + x.ToAmount);
+            }
         }
 
         // Base currency always appears first (even if it has no movements yet).

@@ -49,6 +49,7 @@ public class ProfileService : IProfileService
                  : AuthService.UserRole;
         return new UserProfileDto(
             user.Id, user.Email!, user.FullName, user.Country, user.Currency,
-            user.MonthlyIncomeTarget, user.OnboardingCompleted, role);
+            user.MonthlyIncomeTarget, user.OnboardingCompleted, role,
+            FeatureFlags.Parse(user.DisabledFeatures));
     }
 }

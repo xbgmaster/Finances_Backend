@@ -10,7 +10,8 @@ public record UserProfileDto(
     string Currency,
     decimal? MonthlyIncomeTarget,
     bool OnboardingCompleted,
-    string Role);
+    string Role,
+    IReadOnlyList<string> DisabledFeatures);
 
 public class UpdateProfileDto
 {
