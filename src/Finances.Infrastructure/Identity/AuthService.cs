@@ -264,7 +264,9 @@ public class AuthService : IAuthService
         var roles = await _users.GetRolesAsync(user);
         var token = _jwt.Generate(user.Id, user.Email!, roles);
         var refresh = await IssueRefreshTokenAsync(user.Id, ct);
-        var role = roles.Contains(AdminRole) ? AdminRole : UserRole;
+        var role = roles.Contains(AdminRole) ? AdminRole
+            : roles.Contains(PremiumRole) ? PremiumRole
+            : UserRole;
         var info = new UserInfoDto(user.Id, user.Email!, user.FullName, role, user.OnboardingCompleted, user.Currency,
             Finances.Application.Common.FeatureFlags.Parse(user.DisabledFeatures));
         return new AuthResultDto(token.Token, token.ExpiresAt, refresh, info);

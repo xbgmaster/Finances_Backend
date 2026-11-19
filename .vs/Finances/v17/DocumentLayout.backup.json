@@ -82,7 +82,8 @@
               "RelativeToolTip": "src\\Finances.Infrastructure\\Persistence\\Migrations\\20261001020000_AddWorkShiftDescription.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAB0AAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-10-01T02:04:53.511Z"
+              "WhenOpened": "2026-10-01T02:04:53.511Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
@@ -119,7 +120,8 @@
               "RelativeToolTip": "src\\Finances.Infrastructure\\Email\\BrevoEmailSender.cs",
               "ViewState": "AgIAABsAAAAAAAAAAAAAACsAAAAUAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-09-03T02:50:31.235Z"
+              "WhenOpened": "2026-09-03T02:50:31.235Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
@@ -131,7 +133,8 @@
               "RelativeToolTip": "src\\Finances.Api\\Controllers\\CategoriesController.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAABgAAAA8AAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-08-25T03:58:53.875Z"
+              "WhenOpened": "2026-08-25T03:58:53.875Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
@@ -143,7 +146,8 @@
               "RelativeToolTip": "src\\Finances.Application\\Credits\\Queries\\GetCredits\\GetCreditsQuery.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAgAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-08-25T02:49:44Z"
+              "WhenOpened": "2026-08-25T02:49:44Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
@@ -155,7 +159,8 @@
               "RelativeToolTip": "src\\Finances.Api\\appsettings.json",
               "ViewState": "AgIAAAkAAAAAAAAAAAAAACYAAAAzAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
-              "WhenOpened": "2026-08-01T03:18:34.837Z"
+              "WhenOpened": "2026-08-01T03:18:34.837Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
@@ -167,7 +172,8 @@
               "RelativeToolTip": "src\\Finances.Api\\appsettings.Development.json",
               "ViewState": "AgIAABUAAAAAAAAAAAAAACoAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
-              "WhenOpened": "2026-08-01T03:18:33.576Z"
+              "WhenOpened": "2026-08-01T03:18:33.576Z",
+              "EditorCaption": ""
             }
           ]
         }
