@@ -86,14 +86,14 @@ public class IncomeAutoPostService : BackgroundService
         var shiftsByJob = hourlyIds.Count == 0
             ? new Dictionary<int, List<Domain.Entities.WorkShift>>()
             : (await db.WorkShifts
-                .Where(w => w.IncomeId == null && hourlyIds.Contains(w.IncomeScheduleId))
+                .Where(w => hourlyIds.Contains(w.IncomeScheduleId))
                 .ToListAsync(ct))
                 .GroupBy(w => w.IncomeScheduleId)
                 .ToDictionary(g => g.Key, g => g.ToList());
 
         var posted = schedules.Sum(s => IncomeSchedulePoster.PostDue(
             db, s, today, shiftsByJob.TryGetValue(s.Id, out var list) ? list : null));
-        if (posted > 0)
+        if (posted > 0 || db.ChangeTracker.HasChanges())
         {
             await db.SaveChangesAsync(ct);
             _logger.LogInformation("Auto-posted {Count} scheduled income(s).", posted);

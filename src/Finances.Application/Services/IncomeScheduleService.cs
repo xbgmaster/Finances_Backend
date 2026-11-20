@@ -62,6 +62,7 @@ public class IncomeScheduleService : IIncomeScheduleService
             DayOfMonth = dayOfMonth,
             SecondDayOfMonth = secondDay,
             AnchorDate = anchorDate,
+            PaymentLagBusinessDays = ValidateLag(dto.PaymentLagBusinessDays),
             AutoPost = dto.AutoPost,
             Active = true,
             UserId = userId,
@@ -105,6 +106,7 @@ public class IncomeScheduleService : IIncomeScheduleService
         schedule.DayOfMonth = dayOfMonth;
         schedule.SecondDayOfMonth = secondDay;
         schedule.AnchorDate = anchorDate;
+        schedule.PaymentLagBusinessDays = ValidateLag(dto.PaymentLagBusinessDays);
         schedule.AutoPost = dto.AutoPost;
         schedule.Active = dto.Active;
 
@@ -150,7 +152,8 @@ public class IncomeScheduleService : IIncomeScheduleService
             _db, s, today,
             shiftsByJob.TryGetValue(s.Id, out var shifts) ? shifts : null,
             overridesByJob.TryGetValue(s.Id, out var ov) ? ov : null));
-        if (posted > 0) await _db.SaveChangesAsync(ct);
+        if (posted > 0 || _db is DbContext ctx && ctx.ChangeTracker.HasChanges())
+            await _db.SaveChangesAsync(ct);
         return posted;
     }
 
@@ -311,7 +314,7 @@ public class IncomeScheduleService : IIncomeScheduleService
     {
         if (jobIds.Count == 0) return new();
         var shifts = await _db.WorkShifts
-            .Where(w => w.IncomeId == null && jobIds.Contains(w.IncomeScheduleId))
+            .Where(w => jobIds.Contains(w.IncomeScheduleId))
             .ToListAsync(ct);
         return shifts.GroupBy(w => w.IncomeScheduleId).ToDictionary(g => g.Key, g => g.ToList());
     }
@@ -368,6 +371,14 @@ public class IncomeScheduleService : IIncomeScheduleService
         return (PayFrequency.Monthly, dayOfMonth.Value, null, null);
     }
 
+    private static int ValidateLag(int? days)
+    {
+        if (days is null or 0) return 0;
+        if (days is < 0 or > 30)
+            throw new ValidationException("Los días hábiles hasta el pago deben estar entre 0 y 30.");
+        return days.Value;
+    }
+
     private static (decimal Amount, decimal? HourlyRate) ValidatePay(PayType payType, decimal amount, decimal? hourlyRate)
     {
         if (payType == PayType.Hourly)
@@ -394,7 +405,7 @@ public class IncomeScheduleService : IIncomeScheduleService
         s.PaymentMethodId,
         s.PaymentMethod?.Name,
         s.PaymentMethod?.Type.ToString(),
-        s.DayOfMonth, s.SecondDayOfMonth, s.AnchorDate, s.AutoPost, s.Active,
+        s.DayOfMonth, s.SecondDayOfMonth, s.AnchorDate, s.PaymentLagBusinessDays, s.AutoPost, s.Active,
         IncomeSchedulePoster.NextPayDate(s, today),
         s.LastPostedPeriod);
 

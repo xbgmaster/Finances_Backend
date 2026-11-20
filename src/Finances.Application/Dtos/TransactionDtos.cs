@@ -5,7 +5,7 @@ namespace Finances.Application.Dtos;
 public record IncomeDto(
     int Id, decimal Amount, string Description, DateTime Date, string Currency,
     int? PaymentMethodId = null, string? PaymentMethodName = null, string? PaymentMethodType = null,
-    int? IncomeScheduleId = null);
+    int? IncomeScheduleId = null, DateTime? PayCutDate = null);
 
 public class IncomeCreateDto
 {

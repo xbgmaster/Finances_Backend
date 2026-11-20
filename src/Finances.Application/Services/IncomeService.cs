@@ -37,7 +37,7 @@ public class IncomeService : IIncomeService
                 i.PaymentMethodId,
                 i.PaymentMethod != null ? i.PaymentMethod.Name : null,
                 i.PaymentMethod != null ? i.PaymentMethod.Type.ToString() : null,
-                i.IncomeScheduleId))
+                i.IncomeScheduleId, i.PayCutDate))
             .ToListAsync(ct);
     }
 
@@ -112,7 +112,7 @@ public class IncomeService : IIncomeService
         return new IncomeDto(
             income.Id, income.Amount, income.Description, income.Date, income.Currency ?? baseCurrency,
             paymentMethod?.Id, paymentMethod?.Name, paymentMethod?.Type.ToString(),
-            income.IncomeScheduleId);
+            income.IncomeScheduleId, income.PayCutDate);
     }
 
     public async Task DeleteAsync(int id, CancellationToken ct = default)

@@ -53,6 +53,13 @@ public class IncomeSchedule
     /// </summary>
     public DateTime? AnchorDate { get; set; }
 
+    /// <summary>
+    /// Optional delay between the pay cut and the day the money arrives, in business days
+    /// (Monday–Friday). Zero means the income is posted on the cut date.
+    /// Already posted incomes keep their original date when this changes.
+    /// </summary>
+    public int PaymentLagBusinessDays { get; set; }
+
     /// <summary>When true, the pay is posted automatically once the pay day is reached.</summary>
     public bool AutoPost { get; set; } = true;
 

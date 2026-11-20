@@ -483,6 +483,9 @@ namespace Finances.Infrastructure.Migrations
                     b.Property<int?>("IncomeScheduleId")
                         .HasColumnType("integer");
 
+                    b.Property<DateTime?>("PayCutDate")
+                        .HasColumnType("timestamp without time zone");
+
                     b.Property<int?>("PaymentMethodId")
                         .HasColumnType("integer");
 
@@ -555,6 +558,9 @@ namespace Finances.Infrastructure.Migrations
                         .HasColumnType("integer");
 
                     b.Property<int>("PayType")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("PaymentLagBusinessDays")
                         .HasColumnType("integer");
 
                     b.Property<int?>("PaymentMethodId")

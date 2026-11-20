@@ -20,6 +20,7 @@ public record IncomeScheduleDto(
     int DayOfMonth,
     int? SecondDayOfMonth,
     DateTime? AnchorDate,
+    int PaymentLagBusinessDays,
     bool AutoPost,
     bool Active,
     DateTime NextPayDate,
@@ -65,6 +66,10 @@ public class IncomeScheduleCreateDto
     /// <summary>Reference pay date. Required for Weekly / Biweekly.</summary>
     public DateTime? AnchorDate { get; set; }
 
+    /// <summary>Business days after the cut before the money arrives. Empty or 0 posts on the cut.</summary>
+    [Range(0, 30)]
+    public int? PaymentLagBusinessDays { get; set; }
+
     public bool AutoPost { get; set; } = true;
 }
 
@@ -97,6 +102,9 @@ public class IncomeScheduleUpdateDto
     public int? SecondDayOfMonth { get; set; }
 
     public DateTime? AnchorDate { get; set; }
+
+    [Range(0, 30)]
+    public int? PaymentLagBusinessDays { get; set; }
 
     public bool AutoPost { get; set; } = true;
 

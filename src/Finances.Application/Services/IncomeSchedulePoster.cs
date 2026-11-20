@@ -46,8 +46,38 @@ public static class IncomeSchedulePoster
     private static bool IsDateBased(IncomeSchedule s) =>
         s.PayFrequency is PayFrequency.Weekly or PayFrequency.Biweekly;
 
-    /// <summary>The next pay date on or after <paramref name="today"/> (for display).</summary>
-    public static DateTime NextPayDate(IncomeSchedule s, DateTime today)
+    /// <summary>Monday–Friday days after <paramref name="start"/>. Zero returns the start date.</summary>
+    public static DateTime AddBusinessDays(DateTime start, int businessDays)
+    {
+        var date = start.Date;
+        var left = businessDays;
+        while (left > 0)
+        {
+            date = date.AddDays(1);
+            if (date.DayOfWeek is not DayOfWeek.Saturday and not DayOfWeek.Sunday)
+                left--;
+        }
+        return date;
+    }
+
+    /// <summary>Day the money arrives for a pay cut. No lag means the cut date itself.</summary>
+    public static DateTime PaymentDate(IncomeSchedule s, DateTime cut)
+    {
+        var lag = s.PaymentLagBusinessDays;
+        return lag <= 0 ? cut.Date : AddBusinessDays(cut, lag);
+    }
+
+    /// <summary>First day covered by the pay cut (the day after the previous cut).</summary>
+    public static DateTime PeriodStart(IncomeSchedule s, DateTime cut)
+    {
+        var step = StepDays(s);
+        if (step > 0) return cut.Date.AddDays(1 - step);
+        var prev = MostRecentPayBefore(s, cut);
+        return prev is null ? new DateTime(cut.Year, cut.Month, 1) : prev.Value.Date.AddDays(1);
+    }
+
+    /// <summary>The next cut date on or after <paramref name="today"/>.</summary>
+    public static DateTime NextCutDate(IncomeSchedule s, DateTime today)
     {
         if (IsDateBased(s))
         {
@@ -61,6 +91,26 @@ public static class IncomeSchedulePoster
             if (d.Date >= today.Date) return d;
         var (y, m) = NextYM(today.Year, today.Month);
         return PayDatesInMonth(s, y, m)[0];
+    }
+
+    static DateTime NextCutAfter(IncomeSchedule s, DateTime cut)
+    {
+        var step = StepDays(s);
+        if (step > 0) return cut.Date.AddDays(step);
+        return NextCutDate(s, cut.Date.AddDays(1));
+    }
+
+    /// <summary>The next day the money arrives, on or after <paramref name="today"/>.</summary>
+    public static DateTime NextPayDate(IncomeSchedule s, DateTime today)
+    {
+        var cut = MostRecentPayOnOrBefore(s, today) ?? NextCutDate(s, today);
+        for (var i = 0; i < 24; i++)
+        {
+            var pay = PaymentDate(s, cut);
+            if (pay.Date >= today.Date) return pay;
+            cut = NextCutAfter(s, cut);
+        }
+        return PaymentDate(s, cut);
     }
 
     /// <summary>The most recent pay date on or before today, or null if the first pay is still ahead.</summary>
@@ -179,30 +229,36 @@ public static class IncomeSchedulePoster
         else if (schedule.PayType != PayType.Hourly
                  && lastDate.Date <= today.Date
                  && IsPayDate(schedule, lastDate)
-                 && !AlreadyPosted(db, schedule, lastDate))
+                 && !AlreadyPosted(db, schedule, lastDate, PaymentDate(schedule, lastDate)))
         {
             // The marker moved forward, then the income for that day was deleted.
             // Step back so this pay date is posted again.
             lastDate = lastDate.AddDays(-1);
         }
 
+        AlignHourlyIncome(db, schedule, shifts, today);
+
         var posted = 0;
         foreach (var payDay in EnumeratePayDates(schedule, lastDate, today))
         {
+            var deposit = PaymentDate(schedule, payDay);
+            // The cut can close before the money arrives. Wait, and do not skip this cut.
+            if (deposit.Date > today.Date) break;
             posted += schedule.PayType == PayType.Hourly
-                ? PostHourlyCut(db, schedule, payDay, shifts)
-                : PostFixed(db, schedule, payDay, overrides);
-            // Advance the marker regardless (an empty hourly cut still moves the window forward).
+                ? PostHourlyCut(db, schedule, payDay, deposit, shifts)
+                : PostFixed(db, schedule, payDay, deposit, overrides);
+            // The marker stays on the cut, so a later change of the payment delay
+            // does not create another income for a cut already posted.
             schedule.LastPostedPeriod = payDay.ToString("yyyyMMdd");
         }
         return posted;
     }
 
-    private static int PostFixed(IFinanceDbContext db, IncomeSchedule schedule, DateTime payDay,
+    private static int PostFixed(IFinanceDbContext db, IncomeSchedule schedule, DateTime payDay, DateTime deposit,
         IReadOnlyList<PayOccurrenceOverride>? overrides = null)
     {
         // Idempotent against concurrent post-due (UI) + background job races.
-        if (AlreadyPosted(db, schedule, payDay)) return 0;
+        if (AlreadyPosted(db, schedule, payDay, deposit)) return 0;
 
         // Use overridden amount if the user adjusted this specific occurrence.
         var ov = overrides?.FirstOrDefault(o => o.PayDate.Date == payDay.Date);
@@ -212,7 +268,8 @@ public static class IncomeSchedulePoster
         {
             Amount = amount,
             Description = string.IsNullOrWhiteSpace(ov?.Description) ? schedule.Name : ov!.Description!.Trim(),
-            Date = payDay,
+            Date = deposit,
+            PayCutDate = payDay.Date,
             Currency = schedule.Currency,
             PaymentMethodId = schedule.PaymentMethodId,
             IncomeScheduleId = schedule.Id,
@@ -221,25 +278,61 @@ public static class IncomeSchedulePoster
         return 1;
     }
 
-    private static bool AlreadyPosted(IFinanceDbContext db, IncomeSchedule schedule, DateTime payDay)
+    private static bool CoversCut(Income i, IncomeSchedule schedule, DateTime cut, DateTime deposit) =>
+        i.IncomeScheduleId == schedule.Id
+        && i.UserId == schedule.UserId
+        && (i.PayCutDate?.Date == cut.Date || i.Date.Date == cut.Date || i.Date.Date == deposit.Date);
+
+    private static bool AlreadyPosted(IFinanceDbContext db, IncomeSchedule schedule, DateTime payDay, DateTime deposit)
     {
-        var day = payDay.Date;
-        var next = day.AddDays(1);
-        if (db.Incomes.Local.Any(i =>
-                i.IncomeScheduleId == schedule.Id
-                && i.UserId == schedule.UserId
-                && i.Date >= day && i.Date < next))
+        if (db.Incomes.Local.Any(i => CoversCut(i, schedule, payDay, deposit)))
             return true;
+        var cut = payDay.Date;
+        var paid = deposit.Date;
         return db.Incomes.Any(i =>
             i.IncomeScheduleId == schedule.Id
             && i.UserId == schedule.UserId
-            && i.Date >= day && i.Date < next);
+            && ((i.PayCutDate != null && i.PayCutDate.Value.Date == cut)
+                || i.Date.Date == cut
+                || i.Date.Date == paid));
     }
 
-    private static int PostHourlyCut(IFinanceDbContext db, IncomeSchedule schedule, DateTime payDay, IReadOnlyList<WorkShift>? shifts)
+    /// <summary>
+    /// The posted paycheck is the sum of each shift's own amount. A shift can use a
+    /// different hourly rate (holiday, overtime) than the job's usual rate.
+    /// </summary>
+    private static void AlignHourlyIncome(IFinanceDbContext db, IncomeSchedule schedule, IReadOnlyList<WorkShift>? shifts, DateTime today)
+    {
+        if (schedule.PayType != PayType.Hourly || shifts is null || shifts.Count == 0) return;
+        var cut = MostRecentPayOnOrBefore(schedule, today);
+        if (cut is null) return;
+        var deposit = PaymentDate(schedule, cut.Value);
+        if (deposit.Date > today.Date) return;
+
+        var paid = deposit.Date;
+        var cutDate = cut.Value.Date;
+        var income = db.Incomes.Local.FirstOrDefault(i => CoversCut(i, schedule, cutDate, paid))
+            ?? db.Incomes.FirstOrDefault(i =>
+                i.IncomeScheduleId == schedule.Id
+                && i.UserId == schedule.UserId
+                && ((i.PayCutDate != null && i.PayCutDate.Value.Date == cutDate)
+                    || i.Date.Date == cutDate
+                    || i.Date.Date == paid));
+        if (income is null) return;
+
+        var prev = MostRecentPayBefore(schedule, cut.Value);
+        var window = shifts
+            .Where(w => w.Date.Date <= cutDate && (prev is null || w.Date.Date > prev.Value.Date))
+            .ToList();
+        if (window.Count == 0) return;
+        var total = window.Sum(w => w.Amount);
+        if (income.Amount != total) income.Amount = total;
+    }
+
+    private static int PostHourlyCut(IFinanceDbContext db, IncomeSchedule schedule, DateTime payDay, DateTime deposit, IReadOnlyList<WorkShift>? shifts)
     {
         if (shifts is null || shifts.Count == 0) return 0;
-        if (AlreadyPosted(db, schedule, payDay)) return 0;
+        if (AlreadyPosted(db, schedule, payDay, deposit)) return 0;
 
         // Only shifts in this pay window: (previousCut, payDay]. Sweeping every unposted
         // shift on/before payDay pulled older periods into a single income (e.g. 679 vs 558).
@@ -259,7 +352,8 @@ public static class IncomeSchedulePoster
         {
             Amount = total,
             Description = schedule.Name,
-            Date = payDay,
+            Date = deposit,
+            PayCutDate = payDay.Date,
             Currency = schedule.Currency,
             PaymentMethodId = schedule.PaymentMethodId,
             IncomeScheduleId = schedule.Id,

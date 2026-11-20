@@ -27,6 +27,12 @@ public class Income
     public int? IncomeScheduleId { get; set; }
     public IncomeSchedule? IncomeSchedule { get; set; }
 
+    /// <summary>
+    /// Pay-cut date this income covers, when it was posted after a business-day delay.
+    /// The income <see cref="Date"/> is the day the money arrived.
+    /// </summary>
+    public DateTime? PayCutDate { get; set; }
+
     /// <summary>Propietario del ingreso (Identity user id).</summary>
     public string UserId { get; set; } = string.Empty;
 }
