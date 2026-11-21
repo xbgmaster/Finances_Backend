@@ -440,6 +440,10 @@ namespace Finances.Infrastructure.Migrations
                     b.Property<int?>("SecondDayOfMonth")
                         .HasColumnType("integer");
 
+                    b.Property<string>("SkippedCharges")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
                     b.Property<string>("UserId")
                         .IsRequired()
                         .HasMaxLength(450)

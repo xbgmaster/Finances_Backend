@@ -187,5 +187,6 @@ public class ExpenseScheduleService : IExpenseScheduleService
         s.PayFrequency.ToString(), s.DayOfMonth, s.SecondDayOfMonth,
         s.AutoPost, s.Active,
         ExpenseSchedulePoster.NextChargeDate(s, today),
-        s.LastPostedPeriod);
+        s.LastPostedPeriod,
+        s.SkippedCharges);
 }

@@ -18,7 +18,8 @@ public record ExpenseScheduleDto(
     bool AutoPost,
     bool Active,
     DateTime NextChargeDate,
-    string? LastPostedPeriod);
+    string? LastPostedPeriod,
+    string? SkippedCharges);
 
 public class ExpenseScheduleCreateDto
 {

@@ -101,13 +101,10 @@ public static class ExpenseSchedulePoster
     public static DateTime OccurrenceDate(ExpenseSchedule schedule, DateTime expenseDate)
     {
         var date = expenseDate.Date;
-        var candidates = new List<DateTime>();
-        for (var offset = -1; offset <= 1; offset++)
-        {
-            var shifted = date.AddMonths(offset);
-            candidates.AddRange(ChargeDatesInMonth(schedule, shifted.Year, shifted.Month));
-        }
-        return candidates
+        // A move inside the same month still belongs to that month's charge,
+        // not to the previous or next month's nearest day.
+        var sameMonth = ChargeDatesInMonth(schedule, date.Year, date.Month);
+        return sameMonth
             .OrderBy(d => Math.Abs((d.Date - date).TotalDays))
             .ThenBy(d => d)
             .First();
@@ -122,6 +119,29 @@ public static class ExpenseSchedulePoster
         var day = OccurrenceDate(schedule, expenseDate);
         if (!TryParseMarker(schedule.LastPostedPeriod, out var last) || last.Date < day)
             schedule.LastPostedPeriod = day.ToString("yyyyMMdd");
+    }
+
+    /// <summary>
+    /// The user moved or deleted this occurrence. It must not be created again,
+    /// even if the marker is still behind that charge day.
+    /// </summary>
+    public static void SkipCharge(ExpenseSchedule schedule, DateTime expenseDate)
+    {
+        var key = OccurrenceDate(schedule, expenseDate).ToString("yyyyMMdd");
+        var keys = new HashSet<string>(
+            (schedule.SkippedCharges ?? string.Empty).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
+            StringComparer.Ordinal);
+        if (keys.Add(key))
+            schedule.SkippedCharges = string.Join(',', keys.OrderBy(k => k, StringComparer.Ordinal));
+        AcknowledgeOccurrence(schedule, expenseDate);
+    }
+
+    private static bool IsSkipped(ExpenseSchedule schedule, DateTime chargeDay)
+    {
+        var key = chargeDay.ToString("yyyyMMdd");
+        return (schedule.SkippedCharges ?? string.Empty)
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Any(k => k == key);
     }
 
     private static bool CoversCharge(ExpenseSchedule schedule, DateTime expenseDate, DateTime chargeDay) =>
@@ -158,7 +178,7 @@ public static class ExpenseSchedulePoster
         foreach (var chargeDay in EnumerateChargeDates(schedule, lastDate, today))
         {
             var exists = ChargeExists(db, schedule, chargeDay);
-            if (exists)
+            if (exists || IsSkipped(schedule, chargeDay))
             {
                 schedule.LastPostedPeriod = chargeDay.ToString("yyyyMMdd");
                 continue;

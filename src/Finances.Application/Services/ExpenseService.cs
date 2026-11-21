@@ -193,7 +193,14 @@ public class ExpenseService : IExpenseService
             var schedule = await _db.ExpenseSchedules
                 .FirstOrDefaultAsync(s => s.Id == updateScheduleId && s.UserId == userId, ct);
             if (schedule is not null)
-                ExpenseSchedulePoster.AcknowledgeOccurrence(schedule, expense.Date);
+            {
+                var original = expense.Date;
+                var moved = dto.Date is DateTime next && next.Date != original.Date;
+                if (moved)
+                    ExpenseSchedulePoster.SkipCharge(schedule, original);
+                else
+                    ExpenseSchedulePoster.AcknowledgeOccurrence(schedule, original);
+            }
         }
 
         expense.Amount = dto.Amount;
@@ -240,7 +247,7 @@ public class ExpenseService : IExpenseService
             var schedule = await _db.ExpenseSchedules
                 .FirstOrDefaultAsync(s => s.Id == scheduleId && s.UserId == userId, ct);
             if (schedule is not null)
-                ExpenseSchedulePoster.AcknowledgeOccurrence(schedule, expense.Date);
+                ExpenseSchedulePoster.SkipCharge(schedule, expense.Date);
         }
 
         _db.Expenses.Remove(expense);

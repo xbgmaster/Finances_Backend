@@ -14,6 +14,7 @@ public class ExpenseScheduleConfiguration : IEntityTypeConfiguration<ExpenseSche
         builder.Property(s => s.Amount).HasPrecision(18, 2);
         builder.Property(s => s.Currency).IsRequired().HasMaxLength(3);
         builder.Property(s => s.LastPostedPeriod).HasMaxLength(8);
+        builder.Property(s => s.SkippedCharges).HasMaxLength(500);
 
         builder.HasOne(s => s.Category)
             .WithMany()

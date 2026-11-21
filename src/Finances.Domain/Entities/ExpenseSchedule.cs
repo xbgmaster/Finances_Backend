@@ -38,6 +38,12 @@ public class ExpenseSchedule
     /// <summary>Last posted charge date as yyyyMMdd (idempotent auto-post).</summary>
     public string? LastPostedPeriod { get; set; }
 
+    /// <summary>
+    /// Charge dates (yyyyMMdd, comma-separated) the user moved or deleted.
+    /// Those occurrences are not posted again. Later months still post.
+    /// </summary>
+    public string? SkippedCharges { get; set; }
+
     public string UserId { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
